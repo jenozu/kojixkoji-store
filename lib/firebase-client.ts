@@ -1,5 +1,4 @@
-"use client"
-
+// lib/firebase.ts
 import { initializeApp, getApps, getApp } from "firebase/app"
 import { getAuth } from "firebase/auth"
 
@@ -8,9 +7,9 @@ const firebaseConfig = {
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 }
 
+// Avoid re-initializing on hot reload / multiple imports
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig)
+
 export const auth = getAuth(app)
