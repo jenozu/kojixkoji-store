@@ -1,6 +1,6 @@
-// lib/firebase.ts
-import { initializeApp, getApps, getApp } from "firebase/app"
-import { getAuth } from "firebase/auth"
+// lib/firebase-client.ts
+import { initializeApp, getApps, type FirebaseApp } from "firebase/app"
+import { getAuth, type Auth } from "firebase/auth"
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
@@ -9,7 +9,11 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 }
 
-// Avoid re-initializing on hot reload / multiple imports
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig)
+let app: FirebaseApp
+if (!getApps().length) {
+  app = initializeApp(firebaseConfig)
+} else {
+  app = getApps()[0]!
+}
 
-export const auth = getAuth(app)
+export const auth: Auth = getAuth(app)

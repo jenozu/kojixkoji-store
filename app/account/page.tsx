@@ -7,8 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Eye, EyeOff } from "lucide-react"
-
-import { auth } from "@/lib/firebase"
+import { auth } from "@/lib/firebase-client"
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -19,41 +18,46 @@ export default function AccountPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // toggles
   const [showPassword, setShowPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
 
-  async function handleSignIn(e: React.FormEvent<HTMLFormElement>) {
+  // form state
+  const [signinEmail, setSigninEmail] = useState("")
+  const [signinPassword, setSigninPassword] = useState("")
+
+  const [name, setName] = useState("")
+  const [signupEmail, setSignupEmail] = useState("")
+  const [signupPassword, setSignupPassword] = useState("")
+
+  async function handleSignIn(e: React.FormEvent) {
     e.preventDefault()
-    setError(null)
     setLoading(true)
-    const form = e.currentTarget
-    const email = (form.elements.namedItem("email") as HTMLInputElement).value
-    const password = (form.elements.namedItem("password") as HTMLInputElement).value
+    setError(null)
     try {
-      await signInWithEmailAndPassword(auth, email, password)
-      // TODO: route to account/dashboard if you want
+      await signInWithEmailAndPassword(auth, signinEmail, signinPassword)
+      // success -> navigate or show toast
+      // e.g., window.location.href = "/"
     } catch (err: any) {
-      setError(err?.message || "Sign-in failed")
+      setError(humanizeFirebaseError(err))
     } finally {
       setLoading(false)
     }
   }
 
-  async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
+  async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
-    setError(null)
     setLoading(true)
-    const form = e.currentTarget
-    const name = (form.elements.namedItem("name") as HTMLInputElement).value
-    const email = (form.elements.namedItem("email-new") as HTMLInputElement).value
-    const password = (form.elements.namedItem("password-new") as HTMLInputElement).value
+    setError(null)
     try {
-      const cred = await createUserWithEmailAndPassword(auth, email, password)
-      // set display name
-      await updateProfile(cred.user, { displayName: name })
-      // TODO: route to thank-you/account page
+      const cred = await createUserWithEmailAndPassword(auth, signupEmail, signupPassword)
+      if (name.trim()) {
+        await updateProfile(cred.user, { displayName: name.trim() })
+      }
+      // success -> navigate or show toast
+      // e.g., window.location.href = "/"
     } catch (err: any) {
-      setError(err?.message || "Account creation failed")
+      setError(humanizeFirebaseError(err))
     } finally {
       setLoading(false)
     }
@@ -61,6 +65,7 @@ export default function AccountPage() {
 
   return (
     <div className="min-h-screen">
+      {/* Page header */}
       <section className="kawaii-gradient py-12">
         <div className="container mx-auto px-4">
           <h1 className="text-4xl md:text-5xl font-bold">Account</h1>
@@ -70,6 +75,7 @@ export default function AccountPage() {
         </div>
       </section>
 
+      {/* Centered auth card */}
       <div className="container mx-auto px-4 py-10">
         <div className="mx-auto w-full max-w-md">
           <Card className="border-border/50">
@@ -80,8 +86,9 @@ export default function AccountPage() {
                   <TabsTrigger value="create">Create Account</TabsTrigger>
                 </TabsList>
 
+                {/* error banner */}
                 {error && (
-                  <div className="mt-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  <div className="mt-4 rounded-md bg-destructive/10 text-destructive p-3 text-sm">
                     {error}
                   </div>
                 )}
@@ -91,17 +98,25 @@ export default function AccountPage() {
                   <form onSubmit={handleSignIn} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="email">Email</Label>
-                      <Input id="email" name="email" type="email" required placeholder="you@example.com" />
+                      <Input
+                        id="email"
+                        type="email"
+                        required
+                        placeholder="you@example.com"
+                        value={signinEmail}
+                        onChange={(e) => setSigninEmail(e.target.value)}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="password">Password</Label>
                       <div className="relative">
                         <Input
                           id="password"
-                          name="password"
                           type={showPassword ? "text" : "password"}
                           required
                           className="pr-10"
+                          value={signinPassword}
+                          onChange={(e) => setSigninPassword(e.target.value)}
                         />
                         <Button
                           type="button"
@@ -118,6 +133,9 @@ export default function AccountPage() {
                     <Button type="submit" disabled={loading} className="w-full">
                       {loading ? "Signing in…" : "Sign In"}
                     </Button>
+                    <div className="text-sm text-muted-foreground text-center">
+                      Forgot your password? <span className="underline">Reset</span>
+                    </div>
                   </form>
                 </TabsContent>
 
@@ -126,22 +144,36 @@ export default function AccountPage() {
                   <form onSubmit={handleCreate} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">Name</Label>
-                      <Input id="name" name="name" required placeholder="Your name" />
+                      <Input
+                        id="name"
+                        required
+                        placeholder="Your name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="email-new">Email</Label>
-                      <Input id="email-new" name="email-new" type="email" required placeholder="you@example.com" />
+                      <Input
+                        id="email-new"
+                        type="email"
+                        required
+                        placeholder="you@example.com"
+                        value={signupEmail}
+                        onChange={(e) => setSignupEmail(e.target.value)}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="password-new">Password</Label>
                       <div className="relative">
                         <Input
                           id="password-new"
-                          name="password-new"
                           type={showNewPassword ? "text" : "password"}
                           required
                           placeholder="Create a strong password"
                           className="pr-10"
+                          value={signupPassword}
+                          onChange={(e) => setSignupPassword(e.target.value)}
                         />
                         <Button
                           type="button"
@@ -167,4 +199,21 @@ export default function AccountPage() {
       </div>
     </div>
   )
+}
+
+function humanizeFirebaseError(err: any) {
+  const code = err?.code || ""
+  switch (code) {
+    case "auth/email-already-in-use":
+      return "That email is already in use."
+    case "auth/invalid-email":
+      return "Please enter a valid email."
+    case "auth/weak-password":
+      return "Password is too weak."
+    case "auth/user-not-found":
+    case "auth/wrong-password":
+      return "Invalid email or password."
+    default:
+      return err?.message || "Something went wrong."
+  }
 }
