@@ -3,7 +3,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react"
 import { onAuthStateChanged, type User } from "firebase/auth"
-import { auth } from "./firebase.client"
+import { auth } from "./firebase-client"
 
 type AuthValue = { user: User | null; loading: boolean }
 const AuthCtx = createContext<AuthValue>({ user: null, loading: true })
