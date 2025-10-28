@@ -46,10 +46,10 @@ export default function AccountPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // If we’re already signed in, you can either: (A) redirect away automatically, or (B) show account UI.
+  // If we're already signed in, you can either: (A) redirect away automatically, or (B) show account UI.
   // Choose ONE behavior:
   const autoRedirectWhenSignedIn = true
-  const redirectTo = "/"
+  const redirectTo = "/account/dashboard"
 
   useEffect(() => {
     if (!authLoading && user && autoRedirectWhenSignedIn) {
