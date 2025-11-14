@@ -181,11 +181,9 @@ export default function CartPage() {
                 </div>
               </div>
 
-              <Link href="/checkout" className="block">
-                <Button size="lg" disabled={!items.length} className="w-full">
-                  Checkout
-                </Button>
-              </Link>
+              <Button size="lg" disabled={!items.length} className="w-full">
+                Checkout
+              </Button>
 
               <p className="text-xs text-muted-foreground">
                 Shipping and taxes are estimates. Final amounts are calculated at checkout.

@@ -1,164 +1,87 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { CheckCircle2, Package, Mail, ArrowRight } from "lucide-react"
+import { useEffect, useState } from "react"
+import { CheckCircle2 } from "lucide-react"
 
-type OrderData = {
-  orderId: string
-  email: string
-  total: number
+type Summary = {
+  orderId?: string
+  email?: string
+  total?: number
+}
+
+// Optional: read lightweight summary from sessionStorage (set it right before redirecting here)
+function useOrderSummary(): Summary | null {
+  const [data, setData] = useState<Summary | null>(null)
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("koji-last-order")
+      if (raw) setData(JSON.parse(raw))
+    } catch {}
+  }, [])
+  return data
 }
 
 export default function ThankYouPage() {
-  const router = useRouter()
-  const [orderData, setOrderData] = useState<OrderData | null>(null)
-
-  useEffect(() => {
-    // Retrieve order data from sessionStorage
-    const stored = sessionStorage.getItem("koji-last-order")
-    if (stored) {
-      try {
-        const data = JSON.parse(stored)
-        setOrderData(data)
-        // Clear it so refreshing doesn't show the same order
-        sessionStorage.removeItem("koji-last-order")
-      } catch {
-        // Invalid data, redirect to shop
-        router.replace("/shop")
-      }
-    } else {
-      // No order data, redirect to shop
-      router.replace("/shop")
-    }
-  }, [router])
-
-  if (!orderData) {
-    return (
-      <div className="container mx-auto px-4 py-16">
-        <div className="animate-pulse space-y-6 max-w-2xl mx-auto">
-          <div className="h-8 w-64 rounded bg-muted mx-auto" />
-          <div className="h-48 rounded bg-muted" />
-        </div>
-      </div>
-    )
-  }
+  const summary = useOrderSummary()
 
   return (
-    <div className="min-h-screen py-16">
-      <div className="container mx-auto px-4">
-        <div className="max-w-2xl mx-auto">
-          {/* Success Icon */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-100 mb-4">
-              <CheckCircle2 className="h-10 w-10 text-green-600" />
-            </div>
-            <h1 className="text-3xl md:text-4xl font-bold mb-2">Thank You!</h1>
-            <p className="text-lg text-muted-foreground">
-              Your order has been received and is being processed.
-            </p>
+    <div className="min-h-screen py-12">
+      <div className="container mx-auto px-4 max-w-2xl">
+        <div className="rounded-2xl border bg-background p-8 text-center kawaii-shadow">
+          <div className="mb-4 flex justify-center">
+            <CheckCircle2 className="h-12 w-12 text-green-600" />
           </div>
+          <h1 className="text-3xl font-bold mb-2">Thank you for your order! ✨</h1>
+          <p className="text-muted-foreground">
+            We’re getting your items ready. You’ll receive an email confirmation shortly.
+          </p>
 
-          {/* Order Details */}
-          <Card className="kawaii-shadow border-0 mb-8">
-            <CardContent className="p-8 space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <Package className="h-5 w-5 text-primary mt-0.5" />
-                  <div className="flex-1">
-                    <div className="font-semibold mb-1">Order Number</div>
-                    <div className="text-2xl font-bold text-primary">{orderData.orderId}</div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Save this number for tracking your order
-                    </p>
-                  </div>
-                </div>
+          {/* Optional order summary if provided */}
+          {summary && (summary.orderId || summary.email || summary.total !== undefined) ? (
+            <div className="mt-6 rounded-lg border bg-muted/40 p-4 text-left">
+              <h2 className="font-semibold mb-2">Order Summary</h2>
+              <ul className="space-y-1 text-sm">
+                {summary.orderId && (
+                  <li>
+                    <span className="text-muted-foreground">Order #:</span>{" "}
+                    <span className="font-medium">{summary.orderId}</span>
+                  </li>
+                )}
+                {summary.email && (
+                  <li>
+                    <span className="text-muted-foreground">Email:</span>{" "}
+                    <span className="font-medium">{summary.email}</span>
+                  </li>
+                )}
+                {typeof summary.total === "number" && (
+                  <li>
+                    <span className="text-muted-foreground">Total:</span>{" "}
+                    <span className="font-medium">CA${summary.total.toFixed(2)}</span>
+                  </li>
+                )}
+              </ul>
+            </div>
+          ) : null}
 
-                <div className="h-px bg-border" />
-
-                <div className="flex items-start gap-3">
-                  <Mail className="h-5 w-5 text-primary mt-0.5" />
-                  <div className="flex-1">
-                    <div className="font-semibold mb-1">Confirmation Email</div>
-                    <div className="text-muted-foreground">{orderData.email}</div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      We've sent a confirmation to this email address
-                    </p>
-                  </div>
-                </div>
-
-                <div className="h-px bg-border" />
-
-                <div className="flex items-center justify-between">
-                  <div className="font-semibold">Order Total</div>
-                  <div className="text-2xl font-bold text-primary">
-                    CA${orderData.total.toFixed(2)}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* What's Next */}
-          <Card className="kawaii-shadow border-0 mb-8">
-            <CardContent className="p-6 space-y-4">
-              <h2 className="text-xl font-semibold">What happens next?</h2>
-              <ol className="space-y-3 text-sm">
-                <li className="flex gap-3">
-                  <span className="font-semibold text-primary shrink-0">1.</span>
-                  <span>You'll receive a confirmation email within a few minutes.</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="font-semibold text-primary shrink-0">2.</span>
-                  <span>We'll prepare and package your order with care.</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="font-semibold text-primary shrink-0">3.</span>
-                  <span>You'll get a shipping notification when your package is on its way.</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="font-semibold text-primary shrink-0">4.</span>
-                  <span>Enjoy your kawaii treasures! ✨</span>
-                </li>
-              </ol>
-            </CardContent>
-          </Card>
-
-          {/* Actions */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/shop" className="flex-1 sm:flex-initial">
-              <Button size="lg" className="w-full kawaii-hover">
-                Continue Shopping
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              href="/shop"
+              className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-5 text-primary-foreground hover:opacity-90"
+            >
+              Continue shopping
             </Link>
-            <Link href="/account/dashboard" className="flex-1 sm:flex-initial">
-              <Button size="lg" variant="outline" className="w-full">
-                View My Account
-              </Button>
+            <Link
+              href="/account"
+              className="inline-flex h-10 items-center justify-center rounded-md border px-5 hover:bg-muted"
+            >
+              View account
             </Link>
           </div>
 
-          {/* Support */}
-          <div className="mt-12 text-center">
-            <p className="text-sm text-muted-foreground mb-2">
-              Need help with your order?
-            </p>
-            <div className="flex gap-4 justify-center">
-              <Link href="/contact" className="text-sm text-primary hover:underline">
-                Contact Us
-              </Link>
-              <Link href="/faq" className="text-sm text-primary hover:underline">
-                FAQ
-              </Link>
-              <Link href="/shipping" className="text-sm text-primary hover:underline">
-                Shipping Info
-              </Link>
-            </div>
-          </div>
+          <p className="mt-6 text-xs text-muted-foreground">
+            Questions? <Link className="underline hover:text-primary" href="/contact">Contact us</Link>.
+          </p>
         </div>
       </div>
     </div>
