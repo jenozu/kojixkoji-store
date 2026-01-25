@@ -1,3 +1,6 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -5,49 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Star, Sparkles, Heart, Gift } from "lucide-react"
 
-const featuredProducts = [
-  {
-    id: "1",
-    name: "Kawaii Wing Gundam Poster / Hello Kitty Crossover",
-    price: 33.88,
-    originalPrice: 42.35,
-    image: "/kawaii-gundam-hello-kitty-art-print-pastel-colors.jpg",
-    category: "Art Prints",
-    isNew: true,
-    rating: 5.0,
-    reviews: 22,
-  },
-  {
-    id: "2",
-    name: "Kawaii Ichigo Kurosaki Print / Bleach Pastel Art",
-    price: 33.88,
-    originalPrice: 42.35,
-    image: "/kawaii-ichigo-bleach-anime-art-print-pastel-pink-b.jpg",
-    category: "Art Prints",
-    rating: 4.5,
-    reviews: 15,
-  },
-  {
-    id: "3",
-    name: "Kawaii Sephiroth Art Print / Final Fantasy VII",
-    price: 33.88,
-    originalPrice: 42.35,
-    image: "/kawaii-sephiroth-final-fantasy-art-print-pastel-ae.jpg",
-    category: "Art Prints",
-    rating: 4.8,
-    reviews: 18,
-  },
-  {
-    id: "4",
-    name: "Kawaii Mitsuri Kanroji Poster / Demon Slayer",
-    price: 33.88,
-    originalPrice: 42.35,
-    image: "/kawaii-mitsuri-demon-slayer-art-print-pink-pastel.jpg",
-    category: "Art Prints",
-    rating: 5.0,
-    reviews: 20,
-  },
-]
+// Featured products will be fetched from API
 
 const categories = [
   {
@@ -73,6 +34,26 @@ const categories = [
 ]
 
 export default function HomePage() {
+  const [featuredProducts, setFeaturedProducts] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true)
+        const res = await fetch('/api/products')
+        const data = await res.json()
+        // Take first 4 products as featured
+        setFeaturedProducts(data.slice(0, 4))
+      } catch (error) {
+        console.error('Error fetching products:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchProducts()
+  }, [])
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}

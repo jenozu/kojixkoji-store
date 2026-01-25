@@ -135,11 +135,6 @@ export default function ThankYouPage() {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
-            <Link href="/account/dashboard" className="flex-1 sm:flex-initial">
-              <Button size="lg" variant="outline" className="w-full">
-                View My Account
-              </Button>
-            </Link>
           </div>
 
           {/* Support */}

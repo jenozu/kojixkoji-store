@@ -9,7 +9,6 @@ import { Suspense } from "react"
 // state/providers
 import { CartProvider } from "@/lib/cart-context"
 import { FavoritesProvider } from "@/lib/favorites-context"
-import { AuthProvider } from "@/lib/auth-context" // ✅ add this
 
 import "./globals.css"
 
@@ -28,21 +27,18 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} antialiased`}>
-        {/* ✅ AuthProvider must wrap the app so user state is available everywhere */}
-        <AuthProvider>
-          <CartProvider>
-            <FavoritesProvider>
-              <Header />
-              <main className="min-h-screen">
-                {/* Only suspense-wrap the route content, not the global chrome */}
-                <Suspense fallback={<div className="p-6">Loading...</div>}>
-                  {children}
-                </Suspense>
-              </main>
-              <Footer />
-            </FavoritesProvider>
-          </CartProvider>
-        </AuthProvider>
+        <CartProvider>
+          <FavoritesProvider>
+            <Header />
+            <main className="min-h-screen">
+              {/* Only suspense-wrap the route content, not the global chrome */}
+              <Suspense fallback={<div className="p-6">Loading...</div>}>
+                {children}
+              </Suspense>
+            </main>
+            <Footer />
+          </FavoritesProvider>
+        </CartProvider>
 
         <Analytics />
       </body>

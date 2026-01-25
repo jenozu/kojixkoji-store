@@ -1,35 +1,39 @@
 # Koji Shop - Setup Guide
 
-## Firebase Configuration
+## Supabase Configuration
 
-This app requires Firebase for authentication and storage. Follow these steps:
+This app uses Supabase for database, storage, and backend services. Follow these steps:
 
-### 1. Create a Firebase Project
+### 1. Create a Supabase Project
 
-1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Create a new project or use an existing one
-3. Enable **Authentication** (Email/Password provider)
-4. Enable **Firestore Database** (optional, for orders/favorites persistence)
-5. Enable **Storage** (for product image uploads)
+1. Go to [Supabase](https://supabase.com)
+2. Sign up or log in
+3. Click **New Project**
+4. Choose your organization (or create one)
+5. Fill in project details:
+   - **Name**: koji-store
+   - **Database Password**: Choose a strong password (save this!)
+   - **Region**: Choose closest to your users
+6. Click **Create new project** (takes ~2 minutes)
 
-### 2. Get Your Firebase Config
+### 2. Get Your Supabase Credentials
 
-1. In Firebase Console, go to **Project Settings** (gear icon)
-2. Scroll down to "Your apps" and select or create a Web app
-3. Copy the config values
+1. In Supabase Dashboard, go to **Settings** → **API**
+2. Copy these values:
+   - **Project URL** (e.g., `https://xxx.supabase.co`)
+   - **anon public** key (under "Project API keys")
 
 ### 3. Set Environment Variables
 
 Create a `.env.local` file in the root directory with these values:
 
 ```bash
-# Firebase Configuration
-NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key_here
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+
+# Admin Password
+ADMIN_PASSWORD=your_secure_password
 ```
 
 **For Vercel deployment:**
@@ -37,30 +41,25 @@ NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
 - Make sure to add them for Production, Preview, and Development
 - Redeploy after adding variables
 
-### 4. Firebase Security Rules
+### 4. Create Database Schema
 
-**Firestore Rules** (if using Firestore for persistence):
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Users can read/write their own favorites and orders
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Products are public read, admin write
-    match /products/{productId} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.token.email in ['admin@koji.com'];
-    }
-  }
-}
-```
+See `SUPABASE_SETUP.md` for detailed SQL schema setup instructions.
 
-**Storage Rules**:
-```javascript
-rules_version = '2';
+Quick setup:
+1. Go to **SQL Editor** in Supabase Dashboard
+2. Run the SQL schema from `SUPABASE_SETUP.md`
+3. This creates `products` and `orders` tables with indexes
+
+### 5. Configure Storage
+
+1. Go to **Storage** in Supabase Dashboard
+2. Create bucket: `product-images`
+3. Make it public (check "Public bucket")
+4. Storage is ready for image uploads
+
+### 6. Migrate Existing Data (Optional)
+
+If you have existing products in Redis:
 service firebase.storage {
   match /b/{bucket}/o {
     match /uploads/{allPaths=**} {

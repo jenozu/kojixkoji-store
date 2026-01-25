@@ -24,19 +24,27 @@ const STORAGE_KEY = "kojixkoji:favorites"
 export function FavoritesProvider({ children }: { children: React.ReactNode }) {
   const [favorites, setFavorites] = useState<FavItem[]>([])
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount (client-side only)
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw) setFavorites(JSON.parse(raw))
-    } catch {}
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY)
+        if (raw) setFavorites(JSON.parse(raw))
+      } catch (error) {
+        console.error("Failed to load favorites from localStorage:", error)
+      }
+    }
   }, [])
 
-  // Persist to localStorage on change
+  // Persist to localStorage on change (client-side only)
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(favorites))
-    } catch {}
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(favorites))
+      } catch (error) {
+        console.error("Failed to save favorites to localStorage:", error)
+      }
+    }
   }, [favorites])
 
   const isFavorited = (id: string) => favorites.some(f => f.id === id)

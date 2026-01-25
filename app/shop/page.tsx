@@ -11,70 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Search, Filter, Grid, List } from "lucide-react"
 
-const allProducts = [
-  {
-    id: "1",
-    name: "Kawaii Wing Gundam Poster / Hello Kitty Crossover",
-    price: 33.88,
-    originalPrice: 42.35,
-    image: "/kawaii-gundam-hello-kitty-art-print-pastel-colors.jpg",
-    category: "Art Prints",
-    isNew: true,
-  },
-  {
-    id: "2",
-    name: "Kawaii Ichigo Kurosaki Print / Bleach Pastel Art",
-    price: 33.88,
-    originalPrice: 42.35,
-    image: "/kawaii-ichigo-bleach-anime-art-print-pastel-pink-b.jpg",
-    category: "Art Prints",
-  },
-  {
-    id: "3",
-    name: "Kawaii Sephiroth Art Print / Final Fantasy VII",
-    price: 33.88,
-    originalPrice: 42.35,
-    image: "/kawaii-sephiroth-final-fantasy-art-print-pastel-ae.jpg",
-    category: "Art Prints",
-  },
-  {
-    id: "4",
-    name: "Kawaii Mitsuri Kanroji Poster / Demon Slayer",
-    price: 33.88,
-    originalPrice: 42.35,
-    image: "/kawaii-mitsuri-demon-slayer-art-print-pink-pastel.jpg",
-    category: "Art Prints",
-  },
-  {
-    id: "5",
-    name: "Kawaii Hello Kitty Sweater / Pastel Pink",
-    price: 45.99,
-    image: "/kawaii-hello-kitty-sweater-pastel-pink-cozy.jpg",
-    category: "Apparel",
-    isNew: true,
-  },
-  {
-    id: "6",
-    name: "Anime Character Phone Case / Soft Pastel",
-    price: 24.99,
-    image: "/kawaii-anime-phone-case-pastel-colors-cute.jpg",
-    category: "Accessories",
-  },
-  {
-    id: "7",
-    name: "Kawaii Cloud Blanket / Super Soft",
-    price: 59.99,
-    image: "/kawaii-cloud-blanket-soft-pastel-blue-pink.jpg",
-    category: "Home & Living",
-  },
-  {
-    id: "8",
-    name: "Pastel Anime T-Shirt / Unisex",
-    price: 29.99,
-    image: "/kawaii-anime-t-shirt-pastel-colors-unisex.jpg",
-    category: "Apparel",
-  },
-]
+// Products will be fetched from API
 
 const categories = ["All", "Art Prints", "Apparel", "Accessories", "Home & Living"] as const
 type Category = (typeof categories)[number]
@@ -95,6 +32,8 @@ export default function ShopPage() {
   const urlCategory = (searchParams.get("category") || "") as Category
   const initialCategory: Category = categories.includes(urlCategory) ? urlCategory : "All"
 
+  const [allProducts, setAllProducts] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState<Category>(initialCategory)
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState("featured")
@@ -109,6 +48,23 @@ export default function ShopPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlCategory])
 
+  // Fetch products on mount
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true)
+        const res = await fetch('/api/products')
+        const data = await res.json()
+        setAllProducts(data)
+      } catch (error) {
+        console.error('Error fetching products:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchProducts()
+  }, [])
+
   // Helper to update both state and URL when the user clicks a category
   const setCategoryAndURL = (cat: Category) => {
     setSelectedCategory(cat)
@@ -121,7 +77,8 @@ export default function ShopPage() {
   const filteredProducts = useMemo(() => {
     return allProducts.filter((product) => {
       const matchesCategory = selectedCategory === "All" || product.category === selectedCategory
-      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesSearch = product.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                           product.title?.toLowerCase().includes(searchQuery.toLowerCase())
       const matchesPrice =
         selectedPriceRanges.length === 0 ||
         selectedPriceRanges.some((range) => {
@@ -130,7 +87,7 @@ export default function ShopPage() {
         })
       return matchesCategory && matchesSearch && matchesPrice
     })
-  }, [selectedCategory, searchQuery, selectedPriceRanges])
+  }, [allProducts, selectedCategory, searchQuery, selectedPriceRanges])
 
   const sortedProducts = useMemo(() => {
     const arr = [...filteredProducts]
@@ -268,31 +225,39 @@ export default function ShopPage() {
             </div>
 
             {/* Products Grid */}
-            <div
-              className={`grid gap-6 ${
-                viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"
-              }`}
-            >
-              {sortedProducts.map((product) => (
-                <ProductCard key={product.id} {...product} />
-              ))}
-            </div>
-
-            {sortedProducts.length === 0 && (
+            {loading ? (
               <div className="text-center py-12">
-                <p className="text-muted-foreground text-lg">No products found matching your criteria.</p>
-                <Button
-                  variant="outline"
-                  className="mt-4 bg-transparent"
-                  onClick={() => {
-                    setCategoryAndURL("All")
-                    setSearchQuery("")
-                    setSelectedPriceRanges([])
-                  }}
-                >
-                  Clear Filters
-                </Button>
+                <p className="text-muted-foreground text-lg">Loading products...</p>
               </div>
+            ) : (
+              <>
+                <div
+                  className={`grid gap-6 ${
+                    viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"
+                  }`}
+                >
+                  {sortedProducts.map((product) => (
+                    <ProductCard key={product.id} {...product} />
+                  ))}
+                </div>
+
+                {sortedProducts.length === 0 && (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground text-lg">No products found matching your criteria.</p>
+                    <Button
+                      variant="outline"
+                      className="mt-4 bg-transparent"
+                      onClick={() => {
+                        setCategoryAndURL("All")
+                        setSearchQuery("")
+                        setSelectedPriceRanges([])
+                      }}
+                    >
+                      Clear Filters
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </main>
         </div>

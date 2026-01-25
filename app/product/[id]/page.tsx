@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useParams } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -13,33 +13,37 @@ import { useCart } from "@/lib/cart-context"
 
 export default function ProductPage() {
   const params = useParams()
+  const router = useRouter()
   const productId = params.id as string
 
+  const [product, setProduct] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   const [selectedSize, setSelectedSize] = useState("M")
   const [quantity, setQuantity] = useState(1)
   const [selectedImage, setSelectedImage] = useState(0)
   const [adding, setAdding] = useState(false)
 
-  // Mock product data - replace with real data fetch later
-  const product = {
-    id: productId,
-    name: "Dreamy Cat Girl Print",
-    price: 24.99,
-    originalPrice: 29.99,
-    description:
-      "Bring kawaii magic to your space with this adorable cat girl art print. Featuring soft pastel colors and dreamy anime aesthetics, this high-quality print is perfect for any kawaii lover's collection.",
-    images: [
-      "/kawaii-anime-cat-girl-art-print-pastel-colors.jpg",
-      "/kawaii-anime-cat-girl-art-print-pastel-colors.jpg",
-      "/kawaii-anime-cat-girl-art-print-pastel-colors.jpg",
-    ],
-    rating: 4.9,
-    reviews: 127,
-    category: "Art Prints",
-    sizes: ["S", "M", "L", "XL"],
-    inStock: true,
-    features: ["High-quality matte finish", "Fade-resistant inks", "Multiple size options", "Ready to frame"],
-  }
+  // Fetch product data
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        setLoading(true)
+        const res = await fetch(`/api/products/${productId}`)
+        if (!res.ok) {
+          router.push('/shop')
+          return
+        }
+        const data = await res.json()
+        setProduct(data)
+      } catch (error) {
+        console.error('Error fetching product:', error)
+        router.push('/shop')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchProduct()
+  }, [productId, router])
 
   const relatedProducts = [
     { id: 2, name: "Pastel Moon Sweater", price: 45.99, image: "/kawaii-pastel-moon-sweater-cute-anime-style.jpg", rating: 4.8 },
@@ -47,20 +51,21 @@ export default function ProductPage() {
     { id: 4, name: "Magical Girl Blanket", price: 39.99, image: "/kawaii-magical-girl-blanket-soft-pastel-anime.jpg", rating: 4.9 },
   ]
 
-  // favorites
+  // favorites (hooks must be called unconditionally)
   const { isFavorited, toggleFavorite } = useFavorites()
-  const favorite = isFavorited(product.id)
+  const favorite = product ? isFavorited(product.id) : false
 
   // cart
   const { addItem } = useCart()
 
   const handleAddToCart = async () => {
+    if (!product) return
     setAdding(true)
     addItem({
       id: product.id,
       name: product.name,
       price: product.price,
-      image: product.images[0] || "/placeholder.svg",
+      image: product.imageUrl || "/placeholder.svg",
       category: product.category,
       quantity,
       size: selectedSize,
@@ -69,17 +74,19 @@ export default function ProductPage() {
   }
 
   const handleToggleFavorite = () => {
+    if (!product) return
     toggleFavorite({
       id: product.id,
       name: product.name,
       price: product.price,
       originalPrice: product.originalPrice,
-      image: product.images[0] || "/placeholder.svg",
+      image: product.imageUrl || "/placeholder.svg",
       category: product.category,
     })
   }
 
   const handleShare = async () => {
+    if (!product) return
     const url = typeof window !== "undefined" ? window.location.href : ""
     try {
       if (navigator.share) {
@@ -96,66 +103,64 @@ export default function ProductPage() {
   return (
     <div className="min-h-screen py-8">
       <div className="container mx-auto px-4">
-        {/* Breadcrumb */}
-        <nav className="mb-8">
-          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-            <Link href="/" className="hover:text-primary">Home</Link>
-            <span>/</span>
-            <Link href="/shop" className="hover:text-primary">Shop</Link>
-            <span>/</span>
-            <span className="text-foreground">{product.name}</span>
+        {loading ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground text-lg">Loading product...</p>
           </div>
-        </nav>
+        ) : !product ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground text-lg">Product not found</p>
+            <Link href="/shop">
+              <Button className="mt-4">Back to Shop</Button>
+            </Link>
+          </div>
+        ) : (
+          <>
+            {/* Breadcrumb */}
+            <nav className="mb-8">
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                <Link href="/" className="hover:text-primary">Home</Link>
+                <span>/</span>
+                <Link href="/shop" className="hover:text-primary">Shop</Link>
+                <span>/</span>
+                <span className="text-foreground">{product.name || product.title}</span>
+              </div>
+            </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
-          {/* Product Images */}
-          <div className="space-y-4">
-            <div className="aspect-square overflow-hidden rounded-lg border">
-              <img
-                src={product.images[selectedImage] || "/placeholder.svg"}
-                alt={product.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              {product.images.map((image, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedImage(index)}
-                  className={`aspect-square overflow-hidden rounded-lg border-2 ${
-                    selectedImage === index ? "border-primary" : "border-border"
-                  }`}
-                  aria-label={`Show image ${index + 1}`}
-                >
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
+              {/* Product Images */}
+              <div className="space-y-4">
+                <div className="aspect-square overflow-hidden rounded-lg border">
                   <img
-                    src={image || "/placeholder.svg"}
-                    alt={`${product.name} ${index + 1}`}
+                    src={product.imageUrl || product.image || "/placeholder.svg"}
+                    alt={product.name || product.title}
                     className="w-full h-full object-cover"
                   />
-                </button>
-              ))}
-            </div>
-          </div>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  {/* Hide thumbnails as we don't have multiple images in current setup */}
+                </div>
+              </div>
 
           {/* Product Info */}
           <div className="space-y-6">
             <div className="space-y-4">
               <Badge variant="outline">{product.category}</Badge>
-              <h1 className="text-3xl font-bold text-foreground">{product.name}</h1>
+              <h1 className="text-3xl font-bold text-foreground">{product.name || product.title}</h1>
 
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-1">
                   <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                  <span className="font-medium">{product.rating}</span>
+                  <span className="font-medium">4.5</span>
                 </div>
-                <span className="text-muted-foreground">({product.reviews} reviews)</span>
+                <span className="text-muted-foreground">(Reviews coming soon)</span>
               </div>
 
               <div className="flex items-center space-x-3">
-                <span className="text-3xl font-bold text-primary">${product.price}</span>
+                <span className="text-3xl font-bold text-primary">${product.price.toFixed(2)}</span>
                 {product.originalPrice && (
                   <>
-                    <span className="text-xl text-muted-foreground line-through">${product.originalPrice}</span>
+                    <span className="text-xl text-muted-foreground line-through">${product.originalPrice.toFixed(2)}</span>
                     <Badge className="bg-primary text-primary-foreground">
                       Save ${(product.originalPrice - product.price).toFixed(2)}
                     </Badge>
@@ -167,23 +172,25 @@ export default function ProductPage() {
             <p className="text-muted-foreground leading-relaxed">{product.description}</p>
 
             {/* Size Selection */}
-            <div className="space-y-3">
-              <h3 className="font-semibold">Size</h3>
-              <div className="flex space-x-2">
-                {product.sizes.map((size) => (
-                  <Button
-                    key={size}
-                    variant={selectedSize === size ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedSize(size)}
-                    className="w-12 h-12"
-                    aria-pressed={selectedSize === size}
-                  >
-                    {size}
-                  </Button>
-                ))}
+            {product.sizes && product.sizes.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="font-semibold">Size</h3>
+                <div className="flex space-x-2">
+                  {product.sizes.map((size: any, idx: number) => (
+                    <Button
+                      key={idx}
+                      variant={selectedSize === (size.label || size) ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedSize(size.label || size)}
+                      className="w-12 h-12"
+                      aria-pressed={selectedSize === (size.label || size)}
+                    >
+                      {size.label || size}
+                    </Button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Quantity */}
             <div className="space-y-3">
@@ -233,8 +240,8 @@ export default function ProductPage() {
                 </Button>
               </div>
 
-              {product.inStock ? (
-                <p className="text-sm text-green-600 font-medium">✓ In Stock - Ships within 2-3 business days</p>
+              {product.stock && product.stock > 0 ? (
+                <p className="text-sm text-green-600 font-medium">✓ In Stock ({product.stock} available) - Ships within 2-3 business days</p>
               ) : (
                 <p className="text-sm text-red-600 font-medium">Out of Stock</p>
               )}
@@ -266,12 +273,18 @@ export default function ProductPage() {
             <Card>
               <CardContent className="p-6">
                 <ul className="space-y-3">
-                  {product.features.map((feature, index) => (
-                    <li key={index} className="flex items-center space-x-3">
-                      <div className="w-2 h-2 bg-primary rounded-full" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
+                  <li className="flex items-center space-x-3">
+                    <div className="w-2 h-2 bg-primary rounded-full" />
+                    <span>High-quality materials</span>
+                  </li>
+                  <li className="flex items-center space-x-3">
+                    <div className="w-2 h-2 bg-primary rounded-full" />
+                    <span>Fast shipping</span>
+                  </li>
+                  <li className="flex items-center space-x-3">
+                    <div className="w-2 h-2 bg-primary rounded-full" />
+                    <span>Satisfaction guaranteed</span>
+                  </li>
                 </ul>
               </CardContent>
             </Card>

@@ -115,22 +115,26 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     itemCount: 0,
   })
 
-  // Load cart from localStorage on mount
+  // Load cart from localStorage on mount (client-side only)
   useEffect(() => {
-    const savedCart = localStorage.getItem("koji-cart")
-    if (savedCart) {
-      try {
-        const cartItems = JSON.parse(savedCart)
-        dispatch({ type: "LOAD_CART", payload: cartItems })
-      } catch (error) {
-        console.error("Failed to load cart from localStorage:", error)
+    if (typeof window !== 'undefined') {
+      const savedCart = localStorage.getItem("koji-cart")
+      if (savedCart) {
+        try {
+          const cartItems = JSON.parse(savedCart)
+          dispatch({ type: "LOAD_CART", payload: cartItems })
+        } catch (error) {
+          console.error("Failed to load cart from localStorage:", error)
+        }
       }
     }
   }, [])
 
-  // Save cart to localStorage whenever it changes
+  // Save cart to localStorage whenever it changes (client-side only)
   useEffect(() => {
-    localStorage.setItem("koji-cart", JSON.stringify(state.items))
+    if (typeof window !== 'undefined') {
+      localStorage.setItem("koji-cart", JSON.stringify(state.items))
+    }
   }, [state.items])
 
   const addItem = (item: Omit<CartItem, "quantity"> & { quantity?: number }) => {

@@ -1,270 +1,178 @@
-# 🌸 Koji Shop - Kawaii eCommerce Store
+# KOJI × KOJI Store
 
-A beautiful, modern eCommerce site built with Next.js 14, featuring kawaii anime art prints, apparel, and accessories with dreamy pastel aesthetics.
+A modern e-commerce platform built with Next.js 14, Supabase, and shadcn/ui.
 
-![Next.js](https://img.shields.io/badge/Next.js-14-black)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
-![Firebase](https://img.shields.io/badge/Firebase-10-orange)
-![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4-38bdf8)
+## Features
 
-## ✨ Features
+- 🛍️ Product catalog with categories
+- 🛒 Shopping cart with localStorage persistence
+- ❤️ Favorites system
+- 💳 Checkout flow (guest checkout enabled)
+- 📊 Admin dashboard with analytics
+- 📦 Order management
+- 🖼️ Image upload to Supabase Storage
+- 🎨 Beautiful UI with Tailwind CSS
+- 📱 Fully responsive design
 
-### Customer Experience
-- 🛍️ Browse products by category with search & filters
-- ❤️ Add items to favorites (localStorage + optional Firestore sync)
-- 🛒 Shopping cart with quantity management
-- 👤 User authentication (sign up/sign in via Firebase)
-- 📦 Complete checkout flow
-- ✅ Order confirmation page
-- 📱 Fully responsive mobile design
+## Tech Stack
 
-### Admin Dashboard
-- 🔐 Protected admin routes
-- 📸 Firebase Storage image uploader
-- 📊 Order & user overview (ready to expand)
-- 🎨 Product management foundation
+- **Framework**: Next.js 14 (App Router)
+- **Database**: Supabase (PostgreSQL)
+- **Storage**: Supabase Storage
+- **Styling**: Tailwind CSS + shadcn/ui
+- **Charts**: Recharts
+- **Authentication**: Simple password auth for admin
 
-### Technical Highlights
-- ⚡ Server-side rendering with Next.js 14 App Router
-- 🔥 Firebase Auth, Storage & Firestore integration
-- 🎨 TailwindCSS with custom kawaii theme
-- 🧩 shadcn/ui components
-- 📦 Context API for global state
-- 💾 localStorage persistence
-- 🔒 Route protection
+## Getting Started
 
----
+### Prerequisites
 
-## 🚀 Quick Start
+- Node.js 18+ 
+- npm or yarn
+- Supabase account (free tier available)
 
-### 1. Clone & Install
+### Installation
 
+1. **Clone the repository**
 ```bash
-git clone https://github.com/YOUR_USERNAME/kojixkoji-store.git
+git clone https://github.com/yourusername/kojixkoji-store.git
 cd kojixkoji-store
+```
+
+2. **Install dependencies**
+```bash
 npm install
 ```
 
-### 2. Set Up Firebase
+3. **Set up Supabase**
 
-1. Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com)
-2. Enable **Authentication** (Email/Password)
-3. Enable **Storage** (for product images)
-4. Enable **Firestore** (optional, for cloud persistence)
-5. Get your Firebase config from Project Settings
+See `SUPABASE_SETUP.md` for detailed instructions:
+- Create Supabase project
+- Run database schema
+- Create storage bucket
+- Get API credentials
 
-### 3. Environment Variables
+4. **Configure environment variables**
 
-Create a `.env.local` file in the root directory:
-
+Copy `.env.local.example` to `.env.local`:
 ```bash
-NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key_here
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+cp .env.local.example .env.local
 ```
 
-> **Note**: See [SETUP.md](./SETUP.md) for detailed Firebase setup instructions and security rules.
+Add your credentials:
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+ADMIN_PASSWORD=your_secure_password
+```
 
-### 4. Run Development Server
-
+5. **Run the development server**
 ```bash
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-### 5. Configure Admin Access
+## Admin Dashboard
 
-Edit `app/admin/dashboard/page.tsx` and update:
+Access the admin panel at `/admin/login`:
+- **Default password**: `admin123` (change this immediately!)
+- Manage products, orders, and view analytics
 
-```typescript
-const ADMIN_EMAILS = ["your-admin-email@example.com"]
+Features:
+- Product management (CRUD)
+- Image upload
+- Order tracking
+- Sales analytics
+- Inventory monitoring
+
+## Project Structure
+
+```
+├── app/                  # Next.js app directory
+│   ├── api/             # API routes
+│   ├── admin/           # Admin dashboard
+│   ├── shop/            # Shop pages
+│   └── ...
+├── components/          # React components
+│   └── ui/             # shadcn/ui components
+├── lib/                # Utilities and helpers
+│   ├── supabase-client.ts
+│   └── supabase-helpers.ts
+└── public/             # Static assets
 ```
 
----
+## Database Schema
 
-## 📂 Project Structure
+### Products
+- id, name, description
+- price, cost, category
+- image_url, stock
+- sizes (JSONB)
+- timestamps
 
-```
-kojixkoji-store/
-├── app/                      # Next.js 14 App Router
-│   ├── (routes)/
-│   │   ├── shop/            # Product listing
-│   │   ├── product/[id]/    # Product details
-│   │   ├── cart/            # Shopping cart
-│   │   ├── checkout/        # Checkout flow
-│   │   ├── thank-you/       # Order confirmation
-│   │   ├── account/         # User auth & dashboard
-│   │   └── admin/           # Admin panel
-│   ├── layout.tsx           # Root layout with providers
-│   └── globals.css          # Global styles & kawaii theme
-│
-├── components/              # Reusable React components
-│   ├── ui/                  # shadcn/ui components
-│   ├── header.tsx           # Navigation header
-│   ├── footer.tsx           # Site footer
-│   └── product-card.tsx     # Product card component
-│
-├── lib/                     # Utilities & contexts
-│   ├── firebase-client.ts   # Firebase initialization
-│   ├── auth-context.tsx     # Auth state management
-│   ├── cart-context.tsx     # Shopping cart state
-│   ├── favorites-context.tsx # Favorites state
-│   └── firestore-helpers.ts # Optional Firestore utils
-│
-├── public/                  # Static assets
-│   └── images/              # Product images
-│
-├── SETUP.md                 # Detailed setup guide
-└── DEPLOYMENT-SUMMARY.md    # Launch completion summary
-```
+### Orders
+- id, order_id, email
+- items (JSONB)
+- subtotal, taxes, shipping, total
+- status, shipping_address (JSONB)
+- timestamps
 
----
+See `SUPABASE_SETUP.md` for full schema.
 
-## 🎨 Tech Stack
+## Deployment
 
-- **Framework**: [Next.js 14](https://nextjs.org/) (App Router)
-- **Language**: [TypeScript](https://www.typescriptlang.org/)
-- **Styling**: [TailwindCSS](https://tailwindcss.com/) v4
-- **UI Components**: [shadcn/ui](https://ui.shadcn.com/)
-- **Authentication**: [Firebase Auth](https://firebase.google.com/docs/auth)
-- **Storage**: [Firebase Storage](https://firebase.google.com/docs/storage)
-- **Database**: [Firestore](https://firebase.google.com/docs/firestore) (optional)
-- **Deployment**: [Vercel](https://vercel.com/)
+### Vercel (Recommended)
 
----
+1. Push to GitHub
+2. Import project in Vercel
+3. Add environment variables:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `ADMIN_PASSWORD`
+4. Deploy
 
-## 🔧 Available Scripts
+### Other Platforms
 
-```bash
-# Development
-npm run dev          # Start dev server on localhost:3000
+Compatible with any platform that supports Next.js:
+- Netlify
+- Railway
+- Render
+- Self-hosted
 
-# Production
-npm run build        # Build for production
-npm run start        # Start production server
+## Migration from Firebase
 
-# Code Quality
-npm run lint         # Run ESLint
-```
+If migrating from Firebase:
+1. See `MIGRATION_COMPLETE.md`
+2. Run migration script (if needed)
+3. Update environment variables
+4. Test thoroughly
 
----
+## Contributing
 
-## 🌐 Deployment to Vercel
+Contributions welcome! Please:
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
-1. Push your code to GitHub
-2. Import project in [Vercel Dashboard](https://vercel.com/dashboard)
-3. Add all Firebase environment variables in **Project Settings → Environment Variables**
-4. Deploy!
+## License
 
-Vercel will automatically redeploy on every push to your main branch.
+MIT License - see LICENSE file for details
 
-> **Important**: Make sure to add all `NEXT_PUBLIC_FIREBASE_*` environment variables in Vercel before deploying.
+## Support
+
+- **Documentation**: Check the `docs/` folder
+- **Issues**: GitHub Issues
+- **Supabase**: https://supabase.com/docs
+
+## Acknowledgments
+
+- Built with [Next.js](https://nextjs.org/)
+- UI components from [shadcn/ui](https://ui.shadcn.com/)
+- Database by [Supabase](https://supabase.com/)
+- Icons by [Lucide](https://lucide.dev/)
 
 ---
 
-## 📝 Current Product Data
-
-Products are currently hardcoded in:
-- `app/page.tsx` (featured products)
-- `app/shop/page.tsx` (all products)
-
-### To Make Products Dynamic:
-
-1. Enable Firestore in your Firebase project
-2. Create a `products` collection
-3. Use `lib/firestore-helpers.ts` as a reference
-4. Update pages to fetch from Firestore instead of static data
-
----
-
-## 🛠️ Customization
-
-### Update Branding
-
-- **Site name**: Edit `app/layout.tsx` (metadata)
-- **Logo**: Replace in `components/header.tsx`
-- **Colors**: Modify CSS variables in `app/globals.css`
-- **Admin emails**: Update in `app/admin/dashboard/page.tsx`
-
-### Add New Products
-
-Currently, update the product arrays in:
-- `app/shop/page.tsx`
-- `app/page.tsx`
-
-Or implement Firestore integration for dynamic products.
-
----
-
-## 🔒 Security Notes
-
-- Firebase config is **safe to expose** (they're public API keys)
-- Protect sensitive operations with **Firebase Security Rules**
-- Admin routes check user email against `ADMIN_EMAILS` array
-- See [SETUP.md](./SETUP.md) for recommended security rules
-
----
-
-## 📚 Documentation
-
-- [SETUP.md](./SETUP.md) - Complete Firebase setup guide
-- [DEPLOYMENT-SUMMARY.md](./DEPLOYMENT-SUMMARY.md) - What was built & how to launch
-
----
-
-## 🐛 Troubleshooting
-
-### Build fails with Firebase errors
-- **Cause**: Missing environment variables
-- **Fix**: Add all `NEXT_PUBLIC_FIREBASE_*` vars to `.env.local`
-
-### "Access Denied" on admin dashboard
-- **Cause**: Your email isn't in `ADMIN_EMAILS`
-- **Fix**: Update `app/admin/dashboard/page.tsx` with your email
-
-### Images not uploading
-- **Cause**: Firebase Storage not enabled or wrong rules
-- **Fix**: Enable Storage and apply rules from SETUP.md
-
----
-
-## 🎯 Roadmap
-
-- [ ] Stripe/PayPal integration
-- [ ] Dynamic product management in admin panel
-- [ ] Order status tracking
-- [ ] Email notifications (SendGrid/Resend)
-- [ ] Product reviews & ratings
-- [ ] Inventory management
-- [ ] Analytics dashboard
-
----
-
-## 📄 License
-
-This project is open source and available under the [MIT License](LICENSE).
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Feel free to open issues or submit pull requests.
-
----
-
-## 💖 Acknowledgments
-
-- Inspired by kawaii anime aesthetics
-- Built with modern web technologies
-- Designed for indie creators and small shops
-
----
-
-**Made with 💖 and pastel colors**
-
-For questions or support, see [SETUP.md](./SETUP.md) or open an issue on GitHub.
-
+Made with ❤️ by KOJI × KOJI

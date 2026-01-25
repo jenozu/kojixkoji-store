@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Heart, ShoppingCart, User, Menu, X } from "lucide-react"
+import { Heart, ShoppingCart, Menu, X } from "lucide-react"
 import { useFavorites } from "@/lib/favorites-context"
 import { useCart } from "@/lib/cart-context"
 
@@ -71,15 +71,6 @@ export function Header() {
               )}
             </Link>
 
-            {/* Account */}
-            <Link
-              href="/account"
-              className="inline-flex items-center justify-center rounded-md hover:bg-muted p-2 transition-colors kawaii-hover"
-              aria-label="Account"
-            >
-              <User className="h-5 w-5" />
-            </Link>
-
             {/* Mobile Menu Button */}
             <Button
               variant="ghost"
@@ -131,13 +122,6 @@ export function Header() {
                 onClick={() => setIsMenuOpen(false)}
               >
                 Cart {itemCount > 0 ? `(${itemCount})` : ""}
-              </Link>
-              <Link
-                href="/account"
-                className="text-sm font-medium hover:text-primary transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Account
               </Link>
             </nav>
           </div>
