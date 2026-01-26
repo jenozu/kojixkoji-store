@@ -303,27 +303,40 @@ export default function AdminDashboardPage() {
     }
 
     try {
+      let res: Response
       if (isEditing && currentId) {
         // Update
-        await fetch(`/api/products/${currentId}`, {
+        res = await fetch(`/api/products/${currentId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(productData),
         })
       } else {
         // Create
-        await fetch('/api/products', {
+        res = await fetch('/api/products', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(productData),
         })
       }
 
+      // Check if the response is successful
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'Unknown error occurred' }))
+        console.error('API error:', errorData)
+        alert(`Failed to ${isEditing ? 'update' : 'create'} product: ${errorData.error || `HTTP ${res.status}`}`)
+        return
+      }
+
+      // Only reset form and refresh if successful
+      const createdProduct = await res.json()
+      console.log(`Product ${isEditing ? 'updated' : 'created'} successfully:`, createdProduct)
+      
       resetForm()
       refreshProducts()
     } catch (error) {
       console.error('Save error:', error)
-      alert('Failed to save product')
+      alert(`Failed to ${isEditing ? 'update' : 'create'} product: ${error instanceof Error ? error.message : 'Network error'}`)
     }
   }
 
