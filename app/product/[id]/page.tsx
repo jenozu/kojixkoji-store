@@ -18,7 +18,7 @@ export default function ProductPage() {
 
   const [product, setProduct] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedSize, setSelectedSize] = useState("M")
+  const [selectedSize, setSelectedSize] = useState("")
   const [quantity, setQuantity] = useState(1)
   const [selectedImage, setSelectedImage] = useState(0)
   const [adding, setAdding] = useState(false)
@@ -35,6 +35,10 @@ export default function ProductPage() {
         }
         const data = await res.json()
         setProduct(data)
+        // Set default selected size to first available size
+        if (data.sizes && data.sizes.length > 0) {
+          setSelectedSize(data.sizes[0].label || data.sizes[0])
+        }
       } catch (error) {
         console.error('Error fetching product:', error)
         router.push('/shop')
@@ -174,21 +178,19 @@ export default function ProductPage() {
             {/* Size Selection */}
             {product.sizes && product.sizes.length > 0 && (
               <div className="space-y-3">
-                <h3 className="font-semibold">Size</h3>
-                <div className="flex space-x-2">
+                <h3 className="font-semibold">Select Print Size</h3>
+                <select
+                  value={selectedSize}
+                  onChange={(e) => setSelectedSize(e.target.value)}
+                  className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background"
+                >
                   {product.sizes.map((size: any, idx: number) => (
-                    <Button
-                      key={idx}
-                      variant={selectedSize === (size.label || size) ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setSelectedSize(size.label || size)}
-                      className="w-12 h-12"
-                      aria-pressed={selectedSize === (size.label || size)}
-                    >
-                      {size.label || size}
-                    </Button>
+                    <option key={idx} value={size.label || size}>
+                      {size.label || size} - ${size.price?.toFixed(2) || product.price.toFixed(2)}
+                      {size.stock !== undefined && size.stock > 0 ? ` (${size.stock} available)` : ''}
+                    </option>
                   ))}
-                </div>
+                </select>
               </div>
             )}
 

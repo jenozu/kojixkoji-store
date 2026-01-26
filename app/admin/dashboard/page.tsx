@@ -3,13 +3,32 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react'
 import { useRouter } from "next/navigation"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, Legend } from 'recharts'
-import { LayoutDashboard, Package, Settings, Plus, Trash2, Edit2, Upload, Image as ImageIcon, X, ArrowRight, AlertCircle, TrendingUp, DollarSign, ShoppingBag, LogOut } from 'lucide-react'
+import { LayoutDashboard, Package, Settings, Plus, Trash2, Edit2, Upload, Image as ImageIcon, X, ArrowRight, AlertCircle, TrendingUp, DollarSign, ShoppingBag, LogOut, Video } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
+
+// Standard print sizes for art prints
+const STANDARD_PRINT_SIZES = [
+  { label: '5" × 7"', value: '5x7', defaultPrice: 15 },
+  { label: '8" × 10"', value: '8x10', defaultPrice: 20 },
+  { label: '11" × 14"', value: '11x14', defaultPrice: 30 },
+  { label: '12" × 18"', value: '12x18', defaultPrice: 35 },
+  { label: '16" × 20"', value: '16x20', defaultPrice: 45 },
+  { label: '18" × 24"', value: '18x24', defaultPrice: 55 },
+  { label: '20" × 30"', value: '20x30', defaultPrice: 65 },
+  { label: '24" × 32"', value: '24x32', defaultPrice: 85 },
+  { label: '24" × 36"', value: '24x36', defaultPrice: 95 },
+]
 
 interface ProductSize {
   label: string
   price: number
+  stock?: number
+}
+
+interface MediaFile {
+  url: string
+  type: 'image' | 'video'
 }
 
 interface Product {
@@ -20,6 +39,7 @@ interface Product {
   cost?: number
   category: string
   imageUrl: string
+  mediaUrls?: MediaFile[]
   stock: number
   sizes?: ProductSize[]
 }
@@ -71,19 +91,19 @@ export default function AdminDashboardPage() {
   const [name, setName] = useState('')
   const [category, setCategory] = useState('')
   const [description, setDescription] = useState('')
-  const [price, setPrice] = useState<string>('')
-  const [cost, setCost] = useState<string>('')
-  const [stock, setStock] = useState<string>('')
-  const [imageUrl, setImageUrl] = useState('')
-  const [sizes, setSizes] = useState<ProductSize[]>([])
-
-  // Size Input State
-  const [sizeLabel, setSizeLabel] = useState('')
-  const [sizePrice, setSizePrice] = useState('')
+  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([])
+  const [sizes, setSizes] = useState<ProductSize[]>(
+    STANDARD_PRINT_SIZES.map(size => ({
+      label: size.label,
+      price: size.defaultPrice,
+      stock: 0
+    }))
+  )
 
   // Upload State
   const [uploading, setUploading] = useState(false)
-  const imageInputRef = useRef<HTMLInputElement>(null)
+  const [dragActive, setDragActive] = useState(false)
+  const mediaInputRef = useRef<HTMLInputElement>(null)
 
   // Simple admin authentication check
   useEffect(() => {
@@ -190,50 +210,95 @@ export default function AdminDashboardPage() {
     }))
   }, [products])
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const handleMediaUpload = async (files: FileList | File[]) => {
+    if (!files || files.length === 0) return
 
     try {
       setUploading(true)
-      const formData = new FormData()
-      formData.append('file', file)
+      const uploadedMedia: MediaFile[] = []
 
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      })
+      for (const file of Array.from(files)) {
+        const formData = new FormData()
+        formData.append('file', file)
 
-      if (!res.ok) {
-        const error = await res.json()
-        alert(error.error || 'Failed to upload image')
-        return
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        })
+
+        if (!res.ok) {
+          const error = await res.json()
+          alert(`Failed to upload ${file.name}: ${error.error || 'Unknown error'}`)
+          continue
+        }
+
+        const data = await res.json()
+        const type = file.type.startsWith('video/') ? 'video' : 'image'
+        uploadedMedia.push({ url: data.url, type })
       }
 
-      const data = await res.json()
-      setImageUrl(data.url)
+      setMediaFiles([...mediaFiles, ...uploadedMedia])
     } catch (error) {
       console.error('Upload error:', error)
-      alert('Failed to upload image')
+      alert('Failed to upload media files')
     } finally {
       setUploading(false)
     }
   }
 
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true)
+    } else if (e.type === "dragleave") {
+      setDragActive(false)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragActive(false)
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleMediaUpload(e.dataTransfer.files)
+    }
+  }
+
+  const removeMedia = (index: number) => {
+    setMediaFiles(mediaFiles.filter((_, i) => i !== index))
+  }
+
+  const updateSizePrice = (index: number, price: number) => {
+    const newSizes = [...sizes]
+    newSizes[index].price = price
+    setSizes(newSizes)
+  }
+
+  const updateSizeStock = (index: number, stock: number) => {
+    const newSizes = [...sizes]
+    newSizes[index].stock = stock
+    setSizes(newSizes)
+  }
+
   const handleSubmit = async () => {
-    if (!name || !price || !category) {
-      alert('Please fill in all required fields')
+    if (!name || !category || mediaFiles.length === 0) {
+      alert('Please fill in name, category, and upload at least one image or video')
       return
     }
+
+    // Calculate base price from smallest size for compatibility
+    const basePrice = sizes[0]?.price || 0
 
     const productData = {
       name,
       description,
-      price,
-      cost,
+      price: basePrice,
       category,
-      imageUrl,
-      stock,
+      imageUrl: mediaFiles[0]?.url || '',
+      mediaUrls: mediaFiles,
+      stock: sizes.reduce((sum, s) => sum + (s.stock || 0), 0),
       sizes,
     }
 
@@ -266,12 +331,19 @@ export default function AdminDashboardPage() {
     setCurrentId(product.id)
     setName(product.name)
     setDescription(product.description)
-    setPrice(product.price.toString())
-    setCost(product.cost?.toString() || '')
     setCategory(product.category)
-    setImageUrl(product.imageUrl)
-    setStock(product.stock.toString())
-    setSizes(product.sizes || [])
+    setMediaFiles(product.mediaUrls || [{ url: product.imageUrl, type: 'image' }])
+    
+    // Restore size pricing or use defaults
+    if (product.sizes && product.sizes.length > 0) {
+      setSizes(product.sizes)
+    } else {
+      setSizes(STANDARD_PRINT_SIZES.map(size => ({
+        label: size.label,
+        price: size.defaultPrice,
+        stock: 0
+      })))
+    }
     setIsEditing(true)
   }
 
@@ -291,24 +363,14 @@ export default function AdminDashboardPage() {
     setCurrentId('')
     setName('')
     setDescription('')
-    setPrice('')
-    setCost('')
     setCategory('')
-    setImageUrl('')
-    setStock('')
-    setSizes([])
+    setMediaFiles([])
+    setSizes(STANDARD_PRINT_SIZES.map(size => ({
+      label: size.label,
+      price: size.defaultPrice,
+      stock: 0
+    })))
     setIsEditing(false)
-  }
-
-  const addSize = () => {
-    if (!sizeLabel || !sizePrice) return
-    setSizes([...sizes, { label: sizeLabel, price: parseFloat(sizePrice) }])
-    setSizeLabel('')
-    setSizePrice('')
-  }
-
-  const removeSize = (index: number) => {
-    setSizes(sizes.filter((_, i) => i !== index))
   }
 
   if (!isAuthenticated || loading) {
@@ -580,10 +642,10 @@ export default function AdminDashboardPage() {
                 </Button>
               </div>
 
-              <div className="bg-card border rounded-lg p-6 space-y-4">
+              <div className="bg-card border rounded-lg p-6 space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm mb-1">Product Name *</label>
+                    <label className="block text-sm font-medium mb-2">Product Name *</label>
                     <input
                       type="text"
                       value={name}
@@ -593,7 +655,7 @@ export default function AdminDashboardPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm mb-1">Category *</label>
+                    <label className="block text-sm font-medium mb-2">Category *</label>
                     <input
                       type="text"
                       value={category}
@@ -605,7 +667,7 @@ export default function AdminDashboardPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm mb-1">Description</label>
+                  <label className="block text-sm font-medium mb-2">Description</label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
@@ -614,114 +676,113 @@ export default function AdminDashboardPage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm mb-1">Price *</label>
-                    <input
-                      type="number"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                      className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-primary"
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm mb-1">Cost (COGS)</label>
-                    <input
-                      type="number"
-                      value={cost}
-                      onChange={(e) => setCost(e.target.value)}
-                      className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-primary"
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm mb-1">Stock</label>
-                    <input
-                      type="number"
-                      value={stock}
-                      onChange={(e) => setStock(e.target.value)}
-                      className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-primary"
-                      placeholder="0"
-                    />
-                  </div>
-                </div>
-
+                {/* Bulk Media Upload */}
                 <div>
-                  <label className="block text-sm mb-1">Image</label>
-                  <div className="flex gap-2">
+                  <label className="block text-sm font-medium mb-2">Photos & Videos *</label>
+                  <div
+                    className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                      dragActive ? 'border-primary bg-primary/5' : 'border-border'
+                    }`}
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
+                  >
                     <input
-                      type="text"
-                      value={imageUrl}
-                      onChange={(e) => setImageUrl(e.target.value)}
-                      className="flex-1 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-primary"
-                      placeholder="Image URL or upload"
-                    />
-                    <input
-                      ref={imageInputRef}
+                      ref={mediaInputRef}
                       type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
+                      accept="image/*,video/*"
+                      multiple
+                      onChange={(e) => e.target.files && handleMediaUpload(e.target.files)}
                       className="hidden"
                     />
+                    <Upload className="mx-auto mb-4 text-muted-foreground" size={48} />
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Drag and drop images or videos here, or click to browse
+                    </p>
                     <Button
-                      onClick={() => imageInputRef.current?.click()}
+                      onClick={() => mediaInputRef.current?.click()}
                       disabled={uploading}
                       variant="outline"
+                      type="button"
                     >
-                      <Upload className="mr-2" size={18} />
-                      {uploading ? 'Uploading...' : 'Upload'}
+                      {uploading ? 'Uploading...' : 'Select Files'}
                     </Button>
                   </div>
-                  {imageUrl && (
-                    <img
-                      src={imageUrl}
-                      alt="Preview"
-                      className="mt-2 w-32 h-32 object-cover border rounded"
-                    />
+
+                  {/* Media Preview Grid */}
+                  {mediaFiles.length > 0 && (
+                    <div className="grid grid-cols-4 gap-4 mt-4">
+                      {mediaFiles.map((media, idx) => (
+                        <div key={idx} className="relative group">
+                          {media.type === 'image' ? (
+                            <img
+                              src={media.url}
+                              alt={`Media ${idx + 1}`}
+                              className="w-full h-32 object-cover rounded border"
+                            />
+                          ) : (
+                            <div className="w-full h-32 bg-muted rounded border flex items-center justify-center">
+                              <Video size={32} className="text-muted-foreground" />
+                            </div>
+                          )}
+                          <button
+                            onClick={() => removeMedia(idx)}
+                            className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            type="button"
+                          >
+                            <X size={16} />
+                          </button>
+                          {idx === 0 && (
+                            <span className="absolute bottom-1 left-1 bg-primary text-primary-foreground text-xs px-2 py-1 rounded">
+                              Primary
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
 
+                {/* Print Size Pricing Grid */}
                 <div>
-                  <label className="block text-sm mb-1">Size Variants (Optional)</label>
-                  <div className="flex gap-2 mb-2">
-                    <input
-                      type="text"
-                      value={sizeLabel}
-                      onChange={(e) => setSizeLabel(e.target.value)}
-                      className="flex-1 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-primary"
-                      placeholder="Size label (e.g., A4)"
-                    />
-                    <input
-                      type="number"
-                      value={sizePrice}
-                      onChange={(e) => setSizePrice(e.target.value)}
-                      className="w-32 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-primary"
-                      placeholder="Price"
-                    />
-                    <Button onClick={addSize} variant="outline">
-                      <Plus size={18} />
-                    </Button>
-                  </div>
-                  <div className="space-y-2">
+                  <label className="block text-sm font-medium mb-2">Print Size Variations</label>
+                  <p className="text-xs text-muted-foreground mb-4">Set pricing and stock for each standard print size</p>
+                  <div className="grid grid-cols-3 gap-4">
                     {sizes.map((size, idx) => (
-                      <div key={idx} className="flex items-center gap-2 bg-secondary p-2 rounded">
-                        <span className="flex-1">
-                          {size.label} - ${size.price}
-                        </span>
-                        <Button onClick={() => removeSize(idx)} variant="ghost" size="sm">
-                          <X size={16} />
-                        </Button>
+                      <div key={idx} className="bg-muted p-4 rounded-lg space-y-2">
+                        <div className="font-semibold text-sm">{size.label}</div>
+                        <div>
+                          <label className="text-xs text-muted-foreground">Price ($)</label>
+                          <input
+                            type="number"
+                            value={size.price}
+                            onChange={(e) => updateSizePrice(idx, parseFloat(e.target.value) || 0)}
+                            className="w-full px-2 py-1 border rounded text-sm mt-1"
+                            placeholder="0.00"
+                            step="0.01"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-muted-foreground">Stock</label>
+                          <input
+                            type="number"
+                            value={size.stock || 0}
+                            onChange={(e) => updateSizeStock(idx, parseInt(e.target.value) || 0)}
+                            className="w-full px-2 py-1 border rounded text-sm mt-1"
+                            placeholder="0"
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 <div className="flex gap-2 pt-4">
-                  <Button onClick={handleSubmit}>
+                  <Button onClick={handleSubmit} type="button">
                     {currentId ? 'Update Product' : 'Create Product'}
                   </Button>
-                  <Button onClick={resetForm} variant="outline">
+                  <Button onClick={resetForm} variant="outline" type="button">
                     Cancel
                   </Button>
                 </div>
@@ -838,13 +899,13 @@ export default function AdminDashboardPage() {
               <div className="bg-card border rounded-lg p-6">
                 <h3 className="font-semibold mb-4">Environment Configuration</h3>
                 <p className="text-sm text-muted-foreground mb-2">
-                  This application uses <code className="bg-secondary px-2 py-1">Upstash Redis</code> for product data storage.
+                  This application uses <code className="bg-secondary px-2 py-1">Supabase</code> for product data storage.
                 </p>
                 <p className="text-sm text-muted-foreground mb-2">
-                  Images are stored in <code className="bg-secondary px-2 py-1">/public/uploads/</code>
+                  Images and videos are stored via the upload API.
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Redis connection configured via environment variables in Vercel.
+                  Configuration managed via environment variables in Vercel.
                 </p>
               </div>
             </div>
