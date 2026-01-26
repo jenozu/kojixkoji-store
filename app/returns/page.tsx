@@ -9,7 +9,7 @@ export default function ReturnsPage() {
 
         <section className="rounded-xl border p-6 space-y-4">
           <p className="text-muted-foreground">
-            If you’re not in love with your purchase, you can return most items within <strong>14 days</strong> of
+            If you're not in love with your purchase, you can return most items within <strong>14 days</strong> of
             delivery. Items must be unused, in original packaging, and in the same condition you received them.
           </p>
           <ul className="list-disc pl-6 text-muted-foreground space-y-2">
@@ -20,14 +20,9 @@ export default function ReturnsPage() {
         </section>
 
         <section className="rounded-xl border p-6 space-y-2">
-          <h2 className="font-semibold text-lg">Non-returnable items</h2>
-          <p className="text-muted-foreground">Gift cards, final sale items, and used goods cannot be returned.</p>
-        </section>
-
-        <section className="rounded-xl border p-6 space-y-2">
           <h2 className="font-semibold text-lg">Damaged or wrong item?</h2>
           <p className="text-muted-foreground">
-            Email us within 7 days of delivery with photos and your order number and we’ll make it right.
+            Email us within 7 days of delivery with photos and your order number and we'll make it right.
           </p>
         </section>
       </div>

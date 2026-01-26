@@ -16,12 +16,6 @@ import { Search, Filter, Grid, List } from "lucide-react"
 const categories = ["All", "Art Prints", "Apparel", "Accessories", "Home & Living"] as const
 type Category = (typeof categories)[number]
 
-const priceRanges = [
-  { label: "Under $25", min: 0, max: 25 },
-  { label: "$25 - $50", min: 25, max: 50 },
-  { label: "$50 - $75", min: 50, max: 75 },
-  { label: "Over $75", min: 75, max: 999 },
-]
 
 export default function ShopPage() {
   const router = useRouter()
@@ -39,7 +33,6 @@ export default function ShopPage() {
   const [sortBy, setSortBy] = useState("featured")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [showFilters, setShowFilters] = useState(false)
-  const [selectedPriceRanges, setSelectedPriceRanges] = useState<string[]>([])
 
   // Keep state in sync if URL changes (back/forward nav)
   useEffect(() => {
@@ -79,15 +72,9 @@ export default function ShopPage() {
       const matchesCategory = selectedCategory === "All" || product.category === selectedCategory
       const matchesSearch = product.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
                            product.title?.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesPrice =
-        selectedPriceRanges.length === 0 ||
-        selectedPriceRanges.some((range) => {
-          const pr = priceRanges.find((r) => r.label === range)
-          return pr && product.price >= pr.min && product.price <= pr.max
-        })
-      return matchesCategory && matchesSearch && matchesPrice
+      return matchesCategory && matchesSearch
     })
-  }, [allProducts, selectedCategory, searchQuery, selectedPriceRanges])
+  }, [allProducts, selectedCategory, searchQuery])
 
   const sortedProducts = useMemo(() => {
     const arr = [...filteredProducts]
@@ -139,28 +126,6 @@ export default function ShopPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="font-semibold mb-4">Price Range</h3>
-                <div className="space-y-3">
-                  {priceRanges.map((range) => (
-                    <div key={range.label} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={range.label}
-                        checked={selectedPriceRanges.includes(range.label)}
-                        onCheckedChange={(checked) => {
-                          if (checked) setSelectedPriceRanges([...selectedPriceRanges, range.label])
-                          else setSelectedPriceRanges(selectedPriceRanges.filter((r) => r !== range.label))
-                        }}
-                      />
-                      <label htmlFor={range.label} className="text-sm">
-                        {range.label}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
           </aside>
 
           {/* Main Content */}
@@ -184,6 +149,7 @@ export default function ShopPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="featured">Featured</SelectItem>
+                    <SelectItem value="best-sellers">Best Sellers</SelectItem>
                     <SelectItem value="price-low">Price: Low to High</SelectItem>
                     <SelectItem value="price-high">Price: High to Low</SelectItem>
                     <SelectItem value="name">Name: A to Z</SelectItem>
@@ -250,7 +216,6 @@ export default function ShopPage() {
                       onClick={() => {
                         setCategoryAndURL("All")
                         setSearchQuery("")
-                        setSelectedPriceRanges([])
                       }}
                     >
                       Clear Filters
