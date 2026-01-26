@@ -63,6 +63,8 @@ export async function getProduct(id: string): Promise<Product | null> {
  * Create a new product
  */
 export async function createProduct(productData: Omit<Product, 'id' | 'created_at' | 'updated_at'>): Promise<Product> {
+  console.log('Creating product with data:', productData)
+  
   const { data, error } = await supabase
     .from('products')
     .insert({
@@ -74,10 +76,20 @@ export async function createProduct(productData: Omit<Product, 'id' | 'created_a
     .single()
   
   if (error) {
-    console.error('Error creating product:', error)
-    throw error
+    console.error('Supabase error creating product:', {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    })
+    throw new Error(`Database error: ${error.message} ${error.hint ? `(${error.hint})` : ''}`)
   }
   
+  if (!data) {
+    throw new Error('No data returned from product creation')
+  }
+  
+  console.log('Product created successfully:', data.id)
   return data
 }
 

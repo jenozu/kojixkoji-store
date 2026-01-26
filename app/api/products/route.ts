@@ -37,6 +37,13 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+    console.log('POST /api/products - Received body:', { 
+      name: body.name, 
+      category: body.category, 
+      price: body.price,
+      hasImage: !!body.imageUrl,
+      sizesCount: body.sizes?.length 
+    })
 
     // Validate required fields
     if (!body.name || !body.price || !body.category) {
