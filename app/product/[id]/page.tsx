@@ -134,11 +134,11 @@ export default function ProductPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
               {/* Product Images */}
               <div className="space-y-4">
-                <div className="aspect-square overflow-hidden rounded-lg border">
+                <div className="aspect-square overflow-hidden rounded-lg border bg-muted/30">
                   <img
                     src={product.imageUrl || product.image || "/placeholder.svg"}
                     alt={product.name || product.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                   />
                 </div>
                 <div className="grid grid-cols-3 gap-4">
