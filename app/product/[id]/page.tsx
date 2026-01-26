@@ -333,8 +333,9 @@ export default function ProductPage() {
               </Link>
             ))}
           </div>
-        </section>
+          </section>
         </>
+        )}
       </div>
     </div>
   )
