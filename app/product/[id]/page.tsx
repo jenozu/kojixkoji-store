@@ -334,6 +334,7 @@ export default function ProductPage() {
             ))}
           </div>
         </section>
+        </>
       </div>
     </div>
   )
