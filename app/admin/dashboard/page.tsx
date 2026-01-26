@@ -217,30 +217,70 @@ export default function AdminDashboardPage() {
       setUploading(true)
       const uploadedMedia: MediaFile[] = []
 
+      // Import Supabase client for direct uploads (bypasses Vercel 4.5MB limit)
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+      
+      if (!supabaseUrl || !supabaseKey) {
+        alert('Supabase is not configured. Please check your environment variables.')
+        return
+      }
+
+      const supabase = createClient(supabaseUrl, supabaseKey)
+
       for (const file of Array.from(files)) {
-        const formData = new FormData()
-        formData.append('file', file)
-
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        })
-
-        if (!res.ok) {
-          const error = await res.json()
-          alert(`Failed to upload ${file.name}: ${error.error || 'Unknown error'}`)
+        // Validate file type
+        const allowedTypes = [
+          'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+          'video/mp4', 'video/webm', 'video/quicktime'
+        ]
+        if (!allowedTypes.includes(file.type)) {
+          alert(`Invalid file type for ${file.name}. Only images and videos are allowed.`)
           continue
         }
 
-        const data = await res.json()
+        // Validate file size (5MB for images, 50MB for videos)
+        const isVideo = file.type.startsWith('video/')
+        const maxSize = isVideo ? 50 * 1024 * 1024 : 5 * 1024 * 1024
+        if (file.size > maxSize) {
+          alert(`File ${file.name} is too large. Maximum is ${isVideo ? '50MB for videos' : '5MB for images'}.`)
+          continue
+        }
+
+        // Generate unique filename
+        const timestamp = Date.now()
+        const originalName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
+        const filename = `uploads/${timestamp}-${originalName}`
+
+        // Upload directly to Supabase Storage (bypasses API route and Vercel limits)
+        const { data, error } = await supabase.storage
+          .from('product-images')
+          .upload(filename, file, {
+            contentType: file.type,
+            cacheControl: '3600',
+            upsert: false
+          })
+
+        if (error) {
+          console.error('Upload error:', error)
+          alert(`Failed to upload ${file.name}: ${error.message}`)
+          continue
+        }
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('product-images')
+          .getPublicUrl(filename)
+
         const type = file.type.startsWith('video/') ? 'video' : 'image'
-        uploadedMedia.push({ url: data.url, type })
+        uploadedMedia.push({ url: publicUrl, type })
       }
 
       setMediaFiles([...mediaFiles, ...uploadedMedia])
     } catch (error) {
       console.error('Upload error:', error)
-      alert('Failed to upload media files')
+      alert(`Failed to upload media files: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setUploading(false)
     }

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase-client'
 
+// Note: This API route is kept for backwards compatibility
+// New uploads use direct client-side uploads to Supabase Storage
+// to bypass Vercel's 4.5MB body size limit
+
 /**
  * POST /api/upload - Handle image file uploads to Supabase Storage
  */
