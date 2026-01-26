@@ -213,27 +213,33 @@ export default function AdminDashboardPage() {
   const handleMediaUpload = async (files: FileList | File[]) => {
     if (!files || files.length === 0) return
 
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/cad5dd46-68c3-4a23-81f9-8a4eb65d0d09',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard/page.tsx:213',message:'handleMediaUpload entry',data:{fileCount:files.length,firstFileName:files[0]?.name,firstFileSize:files[0]?.size,firstFileType:files[0]?.type},timestamp:Date.now(),sessionId:'debug-session',runId:'upload-debug',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
+    console.log('[DEBUG] handleMediaUpload entry', {
+      fileCount: files.length,
+      firstFile: files[0] ? {
+        name: files[0].name,
+        size: files[0].size,
+        type: files[0].type
+      } : null
+    })
 
     try {
       setUploading(true)
       const uploadedMedia: MediaFile[] = []
 
       // Import Supabase client for direct uploads (bypasses Vercel 4.5MB limit)
+      console.log('[DEBUG] Importing @supabase/supabase-js')
       const { createClient } = await import('@supabase/supabase-js')
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/cad5dd46-68c3-4a23-81f9-8a4eb65d0d09',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard/page.tsx:221',message:'After dynamic import',data:{importSuccess:true},timestamp:Date.now(),sessionId:'debug-session',runId:'upload-debug',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
+      console.log('[DEBUG] Import successful')
       
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
       const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
       
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/cad5dd46-68c3-4a23-81f9-8a4eb65d0d09',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard/page.tsx:223',message:'Environment variables check',data:{hasUrl:!!supabaseUrl,hasKey:!!supabaseKey,urlLength:supabaseUrl.length,keyLength:supabaseKey.length},timestamp:Date.now(),sessionId:'debug-session',runId:'upload-debug',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
+      console.log('[DEBUG] Environment variables', {
+        hasUrl: !!supabaseUrl,
+        hasKey: !!supabaseKey,
+        urlLength: supabaseUrl.length,
+        keyLength: supabaseKey.length
+      })
       
       if (!supabaseUrl || !supabaseKey) {
         alert('Supabase is not configured. Please check your environment variables.')
@@ -241,10 +247,7 @@ export default function AdminDashboardPage() {
       }
 
       const supabase = createClient(supabaseUrl, supabaseKey)
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/cad5dd46-68c3-4a23-81f9-8a4eb65d0d09',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard/page.tsx:230',message:'Supabase client created',data:{clientCreated:true},timestamp:Date.now(),sessionId:'debug-session',runId:'upload-debug',hypothesisId:'D'})}).catch(()=>{});
-      // #endregion
+      console.log('[DEBUG] Supabase client created')
 
       for (const file of Array.from(files)) {
         // Validate file type
@@ -270,9 +273,11 @@ export default function AdminDashboardPage() {
         const originalName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
         const filename = `uploads/${timestamp}-${originalName}`
 
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/cad5dd46-68c3-4a23-81f9-8a4eb65d0d09',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard/page.tsx:257',message:'Before Supabase upload',data:{filename:filename,fileSize:file.size,fileType:file.type},timestamp:Date.now(),sessionId:'debug-session',runId:'upload-debug',hypothesisId:'E'})}).catch(()=>{});
-        // #endregion
+        console.log('[DEBUG] Starting upload', {
+          filename,
+          fileSize: file.size,
+          fileType: file.type
+        })
 
         // Upload directly to Supabase Storage (bypasses API route and Vercel limits)
         const { data, error } = await supabase.storage
@@ -283,9 +288,12 @@ export default function AdminDashboardPage() {
             upsert: false
           })
 
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/cad5dd46-68c3-4a23-81f9-8a4eb65d0d09',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard/page.tsx:265',message:'After Supabase upload',data:{success:!error,errorMessage:error?.message,errorCode:error?.statusCode,dataPath:data?.path},timestamp:Date.now(),sessionId:'debug-session',runId:'upload-debug',hypothesisId:'E'})}).catch(()=>{});
-        // #endregion
+        console.log('[DEBUG] Upload result', {
+          success: !error,
+          errorMessage: error?.message,
+          errorCode: error?.statusCode,
+          dataPath: data?.path
+        })
 
         if (error) {
           console.error('Upload error:', error)
@@ -304,9 +312,11 @@ export default function AdminDashboardPage() {
 
       setMediaFiles([...mediaFiles, ...uploadedMedia])
     } catch (error) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/cad5dd46-68c3-4a23-81f9-8a4eb65d0d09',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard/page.tsx:282',message:'Catch block entered',data:{errorMessage:error instanceof Error?error.message:'Unknown',errorName:error instanceof Error?error.name:'Unknown',errorStack:error instanceof Error?error.stack:'None'},timestamp:Date.now(),sessionId:'debug-session',runId:'upload-debug',hypothesisId:'A-C-D-E'})}).catch(()=>{});
-      // #endregion
+      console.log('[DEBUG] Catch block entered', {
+        errorMessage: error instanceof Error ? error.message : 'Unknown',
+        errorName: error instanceof Error ? error.name : 'Unknown',
+        errorStack: error instanceof Error ? error.stack : 'None'
+      })
       
       console.error('Upload error:', error)
       alert(`Failed to upload media files: ${error instanceof Error ? error.message : 'Unknown error'}`)
