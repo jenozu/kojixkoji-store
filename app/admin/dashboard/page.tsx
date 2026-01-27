@@ -260,11 +260,11 @@ export default function AdminDashboardPage() {
           continue
         }
 
-        // Validate file size (5MB for images, 50MB for videos)
+        // Validate file size (50MB for images and videos)
         const isVideo = file.type.startsWith('video/')
-        const maxSize = isVideo ? 50 * 1024 * 1024 : 5 * 1024 * 1024
+        const maxSize = 50 * 1024 * 1024 // 50MB for both images and videos
         if (file.size > maxSize) {
-          alert(`File ${file.name} is too large. Maximum is ${isVideo ? '50MB for videos' : '5MB for images'}.`)
+          alert(`File ${file.name} is too large. Maximum is 50MB.`)
           continue
         }
 

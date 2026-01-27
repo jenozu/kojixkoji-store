@@ -38,12 +38,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate file size (5MB for images, 50MB for videos)
+    // Validate file size (50MB for images and videos)
     const isVideo = file.type.startsWith('video/')
-    const maxSize = isVideo ? 50 * 1024 * 1024 : 5 * 1024 * 1024 // 50MB for video, 5MB for images
+    const maxSize = 50 * 1024 * 1024 // 50MB for both images and videos
     if (file.size > maxSize) {
       return NextResponse.json(
-        { error: `File too large. Maximum size is ${isVideo ? '50MB for videos' : '5MB for images'}.` },
+        { error: `File too large. Maximum size is 50MB.` },
         { status: 400 }
       )
     }
