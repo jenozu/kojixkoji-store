@@ -16,7 +16,8 @@ export async function GET() {
       price: product.price,
       cost: product.cost,
       category: product.category,
-      imageUrl: product.image_url,
+      image: product.image_url, // ProductCard expects 'image' field
+      imageUrl: product.image_url, // Keep for backwards compatibility
       stock: product.stock,
       sizes: product.sizes,
     }))
@@ -73,7 +74,8 @@ export async function POST(request: NextRequest) {
       price: newProduct.price,
       cost: newProduct.cost,
       category: newProduct.category,
-      imageUrl: newProduct.image_url,
+      image: newProduct.image_url, // ProductCard expects 'image' field
+      imageUrl: newProduct.image_url, // Keep for backwards compatibility
       stock: newProduct.stock,
       sizes: newProduct.sizes,
     }

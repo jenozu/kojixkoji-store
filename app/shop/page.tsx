@@ -13,33 +13,39 @@ import { Search, Filter, Grid, List } from "lucide-react"
 
 // Products will be fetched from API
 
-const categories = ["All", "Art Prints", "Apparel", "Accessories", "Home & Living"] as const
-type Category = (typeof categories)[number]
-
+type Category = string
 
 export default function ShopPage() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
-  // Read initial category from ?category=… if valid
-  const urlCategory = (searchParams.get("category") || "") as Category
-  const initialCategory: Category = categories.includes(urlCategory) ? urlCategory : "All"
-
   const [allProducts, setAllProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedCategory, setSelectedCategory] = useState<Category>(initialCategory)
+  const [selectedCategory, setSelectedCategory] = useState<Category>("All")
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState("featured")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [showFilters, setShowFilters] = useState(false)
 
-  // Keep state in sync if URL changes (back/forward nav)
+  // Extract unique categories from products
+  const categories = useMemo(() => {
+    const uniqueCategories = new Set<string>()
+    allProducts.forEach(product => {
+      if (product.category) {
+        uniqueCategories.add(product.category)
+      }
+    })
+    return ["All", ...Array.from(uniqueCategories).sort()]
+  }, [allProducts])
+
+  // Read initial category from ?category=… if valid
   useEffect(() => {
-    const next: Category = categories.includes(urlCategory) ? urlCategory : "All"
-    setSelectedCategory(next)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [urlCategory])
+    const urlCategory = searchParams.get("category") || "All"
+    if (urlCategory === "All" || categories.includes(urlCategory)) {
+      setSelectedCategory(urlCategory)
+    }
+  }, [searchParams, categories])
 
   // Fetch products on mount
   useEffect(() => {

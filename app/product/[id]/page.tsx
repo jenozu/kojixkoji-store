@@ -69,7 +69,7 @@ export default function ProductPage() {
       id: product.id,
       name: product.name,
       price: product.price,
-      image: product.imageUrl || "/placeholder.svg",
+      image: product.image || product.imageUrl || "/placeholder.svg",
       category: product.category,
       quantity,
       size: selectedSize,
@@ -84,7 +84,7 @@ export default function ProductPage() {
       name: product.name,
       price: product.price,
       originalPrice: product.originalPrice,
-      image: product.imageUrl || "/placeholder.svg",
+      image: product.image || product.imageUrl || "/placeholder.svg",
       category: product.category,
     })
   }
@@ -136,7 +136,7 @@ export default function ProductPage() {
               <div className="space-y-4">
                 <div className="aspect-square overflow-hidden rounded-lg border bg-muted/30">
                   <img
-                    src={product.imageUrl || product.image || "/placeholder.svg"}
+                    src={product.image || product.imageUrl || "/placeholder.svg"}
                     alt={product.name || product.title}
                     className="w-full h-full object-contain"
                   />
