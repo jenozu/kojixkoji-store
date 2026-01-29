@@ -21,8 +21,9 @@ import {
 const format = (n: number) => `CA$${n.toFixed(2)}`
 
 // Initialize Stripe
+// Added .trim() to prevent 401 errors from accidental whitespace
 const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""
+  (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "").trim()
 )
 
 // Payment form component
@@ -271,7 +272,9 @@ export default function CheckoutPage() {
       })
 
       if (!response.ok) {
-        throw new Error("Failed to create payment intent")
+        // Parse the error message from the server
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create payment intent");
       }
 
       const data = await response.json()

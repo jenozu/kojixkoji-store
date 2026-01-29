@@ -8,7 +8,8 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 // Initialize Stripe with secret key (server-side only)
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+// Added .trim() to prevent 401 Unauthorized errors from accidental whitespace
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY.trim(), {
   apiVersion: '2024-12-18.acacia',
 })
 

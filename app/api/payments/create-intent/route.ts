@@ -7,11 +7,23 @@ import { createPaymentIntent } from '@/lib/stripe'
  */
 export async function POST(request: NextRequest) {
   try {
-    // Debug: Check if Stripe key is loaded
-    if (!process.env.STRIPE_SECRET_KEY) {
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+
+    // 1. Check if Stripe key exists
+    if (!secretKey) {
       console.error('STRIPE_SECRET_KEY is missing from environment')
       return NextResponse.json(
         { error: 'Stripe configuration error: Secret key not found' },
+        { status: 500 }
+      )
+    }
+
+    // 2. Validate key format to catch common configuration errors
+    const trimmedKey = secretKey.trim();
+    if (!trimmedKey.startsWith('sk_test_') && !trimmedKey.startsWith('sk_live_')) {
+      console.error('STRIPE_SECRET_KEY format is invalid. It should start with sk_test_ or sk_live_');
+      return NextResponse.json(
+        { error: 'Stripe configuration error: Invalid key format' },
         { status: 500 }
       )
     }
@@ -39,13 +51,8 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: any) {
     console.error('Error creating payment intent:', error)
-    console.error('Error details:', {
-      message: error.message,
-      type: error.type,
-      code: error.code,
-      statusCode: error.statusCode,
-      raw: error.raw,
-    })
+    
+    // Provide detailed error info in development
     return NextResponse.json(
       { 
         error: error.message || 'Failed to create payment intent',
@@ -53,9 +60,10 @@ export async function POST(request: NextRequest) {
           type: error.type,
           code: error.code,
           statusCode: error.statusCode,
+          isAuthError: error.statusCode === 401
         } : undefined
       },
-      { status: 500 }
+      { status: error.statusCode || 500 }
     )
   }
 }
