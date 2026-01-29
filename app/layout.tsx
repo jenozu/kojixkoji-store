@@ -1,6 +1,5 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
@@ -11,8 +10,6 @@ import { CartProvider } from "@/lib/cart-context"
 import { FavoritesProvider } from "@/lib/favorites-context"
 
 import "./globals.css"
-
-const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Koji Shop - Kawaii Art & Merchandise",
@@ -26,7 +23,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} antialiased`}>
+      <body className="antialiased">
         <CartProvider>
           <FavoritesProvider>
             <Header />

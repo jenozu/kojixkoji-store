@@ -48,13 +48,13 @@ export function ProductCard({
 
   return (
     <Card className="group overflow-hidden kawaii-hover kawaii-shadow border-0 bg-card">
-      <div className="relative aspect-square overflow-hidden">
+      <div className="relative aspect-square overflow-hidden bg-muted/30">
         <Link href={`/product/${id}`}>
           <Image
             src={image || "/placeholder.svg"}
             alt={name}
             fill
-            className="object-contain transition-transform group-hover:scale-105"
+            className="object-cover transition-transform group-hover:scale-105"
           />
         </Link>
 

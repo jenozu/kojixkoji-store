@@ -13,6 +13,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-public-key-here
 # Admin Authentication (REQUIRED)
 ADMIN_PASSWORD=your_secure_password_here
 
+# Stripe Payment Processing (REQUIRED for payments)
+STRIPE_SECRET_KEY=sk_test_your_secret_key_here
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_publishable_key_here
+STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret_here
+
 ═══════════════════════════════════════════════════════════════════
 
 🔷 HOW TO GET SUPABASE CREDENTIALS

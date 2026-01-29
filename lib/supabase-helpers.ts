@@ -161,6 +161,9 @@ export interface Order {
     postal: string
     country?: string
   }
+  payment_intent_id?: string
+  payment_status?: 'pending' | 'succeeded' | 'failed' | 'refunded'
+  payment_method?: string
   created_at?: string
   updated_at?: string
 }

@@ -2,6 +2,7 @@
 
 import Image from "next/image"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useMemo } from "react"
 import { useCart } from "@/lib/cart-context"
 import { Button } from "@/components/ui/button"
@@ -17,6 +18,7 @@ const fmt = new Intl.NumberFormat("en-CA", {
 })
 
 export default function CartPage() {
+  const router = useRouter()
   const { items, total, itemCount, updateQuantity, removeItem, clearCart } = useCart()
 
   // (Optional) shipping/tax estimates — tweak as you like
@@ -181,7 +183,12 @@ export default function CartPage() {
                 </div>
               </div>
 
-              <Button size="lg" disabled={!items.length} className="w-full">
+              <Button 
+                size="lg" 
+                disabled={!items.length} 
+                className="w-full"
+                onClick={() => items.length > 0 && router.push("/checkout")}
+              >
                 Checkout
               </Button>
 

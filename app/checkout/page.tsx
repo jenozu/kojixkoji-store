@@ -3,15 +3,205 @@
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useCart } from "@/lib/cart-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Minus, Plus, Trash2, Lock } from "lucide-react"
+import { Minus, Plus, Trash2, Lock, Loader2 } from "lucide-react"
+import { loadStripe } from "@stripe/stripe-js"
+import {
+  Elements,
+  PaymentElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js"
 
 const format = (n: number) => `CA$${n.toFixed(2)}`
+
+// Initialize Stripe
+const stripePromise = loadStripe(
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""
+)
+
+// Payment form component
+function PaymentForm({
+  orderTotal,
+  contact,
+  shipping,
+  items,
+  clientSecret,
+  onSuccess,
+  onError,
+}: {
+  orderTotal: number
+  contact: { email: string }
+  shipping: any
+  items: any[]
+  clientSecret: string
+  onSuccess: (orderId: string) => void
+  onError: (error: string) => void
+}) {
+  const stripe = useStripe()
+  const elements = useElements()
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [isElementReady, setIsElementReady] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!stripe || !elements) {
+      setError("Payment form is not ready. Please wait a moment.")
+      return
+    }
+
+    // Check if PaymentElement is mounted
+    const paymentElement = elements.getElement('payment')
+    if (!paymentElement) {
+      setError("Payment form is not ready. Please wait a moment.")
+      return
+    }
+
+    setIsProcessing(true)
+    setError(null)
+
+    try {
+      // Generate order ID
+      const orderId = `KOJI-${Date.now().toString(36).toUpperCase()}`
+
+      // Prepare order data - split into multiple metadata fields to avoid 500 char limit
+      const itemsData = items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+      }))
+
+      // Extract payment intent ID from client secret
+      const paymentIntentId = clientSecret.split("_secret_")[0]
+
+      // Update payment intent with order metadata before confirming
+      // Split data across multiple metadata fields (each max 500 chars)
+      const response = await fetch("/api/payments/update-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paymentIntentId,
+          metadata: {
+            orderId,
+            email: contact.email,
+            items: JSON.stringify(itemsData),
+            subtotal: orderTotal.toString(),
+            taxes: "0",
+            shipping: "0",
+            total: orderTotal.toString(),
+            shippingName: `${shipping.firstName} ${shipping.lastName}`,
+            shippingAddress: `${shipping.address1}${shipping.address2 ? ', ' + shipping.address2 : ''}`,
+            shippingCity: shipping.city,
+            shippingProvince: shipping.province,
+            shippingPostal: shipping.postal,
+            shippingCountry: shipping.country,
+            shippingNotes: shipping.notes || "",
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to update payment intent")
+      }
+
+      // Confirm payment
+      const { error: confirmError } = await stripe.confirmPayment({
+        elements,
+        clientSecret,
+        confirmParams: {
+          return_url: `${window.location.origin}/thank-you`,
+          payment_method_data: {
+            billing_details: {
+              name: `${shipping.firstName} ${shipping.lastName}`,
+              email: contact.email,
+              address: {
+                line1: shipping.address1,
+                line2: shipping.address2 || undefined,
+                city: shipping.city,
+                state: shipping.province,
+                postal_code: shipping.postal,
+                country: shipping.country === "Canada" ? "CA" : shipping.country,
+              },
+            },
+          },
+        },
+        redirect: "if_required",
+      })
+
+      if (confirmError) {
+        throw confirmError
+      }
+
+      // Store order summary for thank-you page
+      sessionStorage.setItem(
+        "koji-last-order",
+        JSON.stringify({
+          orderId,
+          email: contact.email,
+          total: orderTotal,
+        })
+      )
+
+      onSuccess(orderId)
+    } catch (err: any) {
+      const errorMessage = err.message || "Payment failed. Please try again."
+      setError(errorMessage)
+      onError(errorMessage)
+      setIsProcessing(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <PaymentElement 
+        onReady={() => {
+          console.log('PaymentElement ready')
+          setIsElementReady(true)
+        }}
+        onLoadError={(error) => {
+          console.log('PaymentElement load error (non-critical):', error)
+          // Even if some payment methods fail to load (like Apple Pay on HTTP),
+          // card input should still work, so enable the button
+          setIsElementReady(true)
+        }}
+        options={{
+          layout: 'tabs',
+        }}
+      />
+      {error && (
+        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+      <Button
+        type="submit"
+        size="lg"
+        className="w-full"
+        disabled={!stripe || !isElementReady || isProcessing}
+      >
+        {isProcessing ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Processing...
+          </>
+        ) : (
+          <>
+            <Lock className="mr-2 h-4 w-4" />
+            Pay CA${orderTotal.toFixed(2)}
+          </>
+        )}
+      </Button>
+    </form>
+  )
+}
 
 export default function CheckoutPage() {
   const router = useRouter()
@@ -32,6 +222,10 @@ export default function CheckoutPage() {
   })
   const [promo, setPromo] = useState("")
   const [applying, setApplying] = useState(false)
+  const [paymentError, setPaymentError] = useState<string | null>(null)
+  const [showPayment, setShowPayment] = useState(false)
+  const [clientSecret, setClientSecret] = useState<string | null>(null)
+  const [isLoadingPayment, setIsLoadingPayment] = useState(false)
 
   const subtotal = total
   const discount = 0 // apply real discounts here if needed
@@ -54,20 +248,44 @@ export default function CheckoutPage() {
     setTimeout(() => setApplying(false), 400)
   }
 
-  const handlePlaceOrder = async () => {
-    // Demo behavior: clear the cart and show a simple thank-you page (optional)
+  const handlePaymentSuccess = (orderId: string) => {
     clearCart()
-    // In app/checkout/page.tsx, inside handlePlaceOrder() before router.push:
-sessionStorage.setItem(
-  "koji-last-order",
-  JSON.stringify({
-    orderId: Math.random().toString(36).slice(2, 8).toUpperCase(), // demo order id
-    email: contact.email,
-    total: orderTotal,
-  })
-)
-    router.push("/thank-you") // create this route later, or swap for alert:
-    // alert("Order placed! (demo)\nYou can wire Stripe/PayPal later.")
+    router.push("/thank-you")
+  }
+
+  const handleContinueToPayment = async () => {
+    if (!canPlace) return
+
+    setIsLoadingPayment(true)
+    setPaymentError(null)
+
+    try {
+      // Create payment intent
+      const response = await fetch("/api/payments/create-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: orderTotal,
+          currency: "cad",
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to create payment intent")
+      }
+
+      const data = await response.json()
+      console.log('Payment intent created:', {
+        hasClientSecret: !!data.clientSecret,
+        clientSecretPrefix: data.clientSecret?.substring(0, 20) + '...'
+      })
+      setClientSecret(data.clientSecret)
+      setShowPayment(true)
+    } catch (err: any) {
+      setPaymentError(err.message || "Failed to initialize payment")
+    } finally {
+      setIsLoadingPayment(false)
+    }
   }
 
   return (
@@ -94,7 +312,7 @@ sessionStorage.setItem(
               <CardContent className="p-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-semibold">Contact</h2>
-                  <span className="text-xs text-muted-foreground">We’ll send your receipt here.</span>
+                  <span className="text-xs text-muted-foreground">We'll send your receipt here.</span>
                 </div>
                 <div className="grid grid-cols-1 gap-4">
                   <div>
@@ -104,6 +322,7 @@ sessionStorage.setItem(
                       placeholder="you@example.com"
                       value={contact.email}
                       onChange={(e) => setContact({ email: e.target.value })}
+                      disabled={showPayment}
                     />
                   </div>
                 </div>
@@ -125,6 +344,7 @@ sessionStorage.setItem(
                       value={shipping.firstName}
                       onChange={(e) => setShipping((s) => ({ ...s, firstName: e.target.value }))}
                       placeholder="Sailor"
+                      disabled={showPayment}
                     />
                   </div>
                   <div>
@@ -133,6 +353,7 @@ sessionStorage.setItem(
                       value={shipping.lastName}
                       onChange={(e) => setShipping((s) => ({ ...s, lastName: e.target.value }))}
                       placeholder="Moon"
+                      disabled={showPayment}
                     />
                   </div>
                 </div>
@@ -143,6 +364,7 @@ sessionStorage.setItem(
                     value={shipping.address1}
                     onChange={(e) => setShipping((s) => ({ ...s, address1: e.target.value }))}
                     placeholder="123 Kawaii St"
+                    disabled={showPayment}
                   />
                 </div>
 
@@ -152,6 +374,7 @@ sessionStorage.setItem(
                     value={shipping.address2}
                     onChange={(e) => setShipping((s) => ({ ...s, address2: e.target.value }))}
                     placeholder="Unit 5"
+                    disabled={showPayment}
                   />
                 </div>
 
@@ -162,6 +385,7 @@ sessionStorage.setItem(
                       value={shipping.city}
                       onChange={(e) => setShipping((s) => ({ ...s, city: e.target.value }))}
                       placeholder="Toronto"
+                      disabled={showPayment}
                     />
                   </div>
                   <div>
@@ -170,6 +394,7 @@ sessionStorage.setItem(
                       value={shipping.province}
                       onChange={(e) => setShipping((s) => ({ ...s, province: e.target.value }))}
                       placeholder="ON"
+                      disabled={showPayment}
                     />
                   </div>
                   <div>
@@ -178,6 +403,7 @@ sessionStorage.setItem(
                       value={shipping.postal}
                       onChange={(e) => setShipping((s) => ({ ...s, postal: e.target.value }))}
                       placeholder="M5V 2T6"
+                      disabled={showPayment}
                     />
                   </div>
                 </div>
@@ -189,6 +415,7 @@ sessionStorage.setItem(
                       value={shipping.country}
                       onChange={(e) => setShipping((s) => ({ ...s, country: e.target.value }))}
                       placeholder="Canada"
+                      disabled={showPayment}
                     />
                   </div>
                   <div>
@@ -198,25 +425,82 @@ sessionStorage.setItem(
                       value={shipping.notes}
                       onChange={(e) => setShipping((s) => ({ ...s, notes: e.target.value }))}
                       placeholder="Delivery instructions, gift message, etc."
+                      disabled={showPayment}
                     />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Payment placeholder */}
+            {/* Payment */}
             <Card className="kawaii-shadow border-0">
               <CardContent className="p-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-semibold flex items-center gap-2">
                     <Lock className="h-4 w-4" />
-                    Payment (coming soon)
+                    Payment
                   </h2>
-                  <span className="text-xs text-muted-foreground">We don’t store your card details.</span>
+                  <span className="text-xs text-muted-foreground">We don't store your card details.</span>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  You can add Stripe/PayPal later. For now, this is a demo checkout that collects contact and shipping info.
-                </p>
+
+                {!showPayment ? (
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Secure payment powered by Stripe. Click continue to enter your payment details.
+                    </p>
+                    <Button
+                      onClick={handleContinueToPayment}
+                      disabled={!canPlace || isLoadingPayment}
+                      className="w-full"
+                    >
+                      {isLoadingPayment ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Loading...
+                        </>
+                      ) : (
+                        "Continue to Payment"
+                      )}
+                    </Button>
+                  </div>
+                ) : clientSecret ? (
+                  <Elements
+                    stripe={stripePromise}
+                    options={{
+                      clientSecret,
+                      appearance: {
+                        theme: "stripe",
+                      },
+                    }}
+                  >
+                    <PaymentForm
+                      orderTotal={orderTotal}
+                      contact={contact}
+                      shipping={shipping}
+                      items={items}
+                      clientSecret={clientSecret}
+                      onSuccess={handlePaymentSuccess}
+                      onError={(error) => {
+                        setPaymentError(error)
+                        setShowPayment(false)
+                        setClientSecret(null)
+                      }}
+                    />
+                  </Elements>
+                ) : (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    <span className="ml-2 text-sm text-muted-foreground">
+                      Loading payment form...
+                    </span>
+                  </div>
+                )}
+
+                {paymentError && (
+                  <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                    {paymentError}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -238,7 +522,6 @@ sessionStorage.setItem(
                   {items.map((it) => (
                     <div key={it.id + (it.size ?? "")} className="flex gap-3">
                       <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md border">
-                        {/* Use next/image for local images; plain img also works */}
                         <Image
                           src={it.image || "/placeholder.svg"}
                           alt={it.name}
@@ -259,7 +542,7 @@ sessionStorage.setItem(
                             variant="outline"
                             size="icon"
                             onClick={() => updateQuantity(it.id, Math.max(1, it.quantity - 1))}
-                            disabled={it.quantity <= 1}
+                            disabled={it.quantity <= 1 || showPayment}
                             aria-label="Decrease quantity"
                           >
                             <Minus className="h-4 w-4" />
@@ -269,6 +552,7 @@ sessionStorage.setItem(
                             variant="outline"
                             size="icon"
                             onClick={() => updateQuantity(it.id, it.quantity + 1)}
+                            disabled={showPayment}
                             aria-label="Increase quantity"
                           >
                             <Plus className="h-4 w-4" />
@@ -279,6 +563,7 @@ sessionStorage.setItem(
                             size="icon"
                             className="ml-1 text-destructive"
                             onClick={() => removeItem(it.id)}
+                            disabled={showPayment}
                             aria-label="Remove item"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -296,8 +581,9 @@ sessionStorage.setItem(
                     placeholder="Gift card or discount code"
                     value={promo}
                     onChange={(e) => setPromo(e.target.value)}
+                    disabled={showPayment}
                   />
-                  <Button variant="outline" onClick={handleApplyPromo} disabled={!promo || applying}>
+                  <Button variant="outline" onClick={handleApplyPromo} disabled={!promo || applying || showPayment}>
                     {applying ? "Applying..." : "Apply"}
                   </Button>
                 </div>
@@ -328,15 +614,6 @@ sessionStorage.setItem(
                     <span>{format(orderTotal)}</span>
                   </div>
                 </div>
-
-                <Button
-                  size="lg"
-                  className="w-full"
-                  disabled={!canPlace || items.length === 0}
-                  onClick={handlePlaceOrder}
-                >
-                  Place Order (Demo)
-                </Button>
 
                 <p className="text-xs text-muted-foreground text-center">
                   By placing your order, you agree to our{" "}
