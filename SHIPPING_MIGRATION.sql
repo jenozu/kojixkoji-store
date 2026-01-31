@@ -17,3 +17,9 @@ CREATE INDEX IF NOT EXISTS idx_shipping_rates_country ON shipping_rates(country_
 INSERT INTO shipping_rates (name, country_code, price)
 VALUES ('Default', '*', 9.99)
 ON CONFLICT (country_code) DO NOTHING;
+
+-- Allow public read so checkout and cart can fetch rates (anon key)
+ALTER TABLE shipping_rates ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public read shipping_rates" ON shipping_rates;
+CREATE POLICY "Allow public read shipping_rates" ON shipping_rates
+  FOR SELECT USING (true);

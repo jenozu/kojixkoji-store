@@ -256,9 +256,13 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     const code = countryToCode(shipping.country)
-    fetch(`/api/shipping/rates?country=${encodeURIComponent(code)}`)
+    if (!code) {
+      setShippingAmount(9.99)
+      return
+    }
+    fetch(`/api/shipping/rates?country=${encodeURIComponent(code)}`, { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : { price: 9.99 }))
-      .then((data) => setShippingAmount(Number(data.price) || 9.99))
+      .then((data) => setShippingAmount(Number(data.price) ?? 9.99))
       .catch(() => setShippingAmount(9.99))
   }, [shipping.country])
 

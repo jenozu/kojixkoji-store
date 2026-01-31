@@ -14,11 +14,17 @@ export async function GET(request: NextRequest) {
     if (country) {
       const rate = await getShippingRateByCountry(country)
       const defaultPrice = 9.99
-      return NextResponse.json({
-        price: rate ? rate.price : defaultPrice,
-        name: rate?.name ?? 'Standard',
-        country_code: rate?.country_code ?? '*',
-      })
+      const price = rate != null ? Number(rate.price) : defaultPrice
+      return NextResponse.json(
+        {
+          price,
+          name: rate?.name ?? 'Standard',
+          country_code: rate?.country_code ?? '*',
+        },
+        {
+          headers: { 'Cache-Control': 'no-store, max-age=0' },
+        }
+      )
     }
 
     const rates = await getShippingRates()
