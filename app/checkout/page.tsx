@@ -69,6 +69,12 @@ function PaymentForm({
     setError(null)
 
     try {
+      // Submit the payment element for validation
+      const { error: submitError } = await elements.submit()
+      if (submitError) {
+        throw submitError
+      }
+
       // Generate order ID
       const orderId = `KOJI-${Date.now().toString(36).toUpperCase()}`
 
