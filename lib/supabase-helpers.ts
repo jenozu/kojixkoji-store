@@ -131,6 +131,77 @@ export async function deleteProduct(id: string): Promise<void> {
 }
 
 // ============================================
+// SHIPPING RATES
+// ============================================
+
+export interface ShippingRate {
+  id: string
+  name: string
+  country_code: string
+  price: number
+  created_at?: string
+  updated_at?: string
+}
+
+export async function getShippingRates(): Promise<ShippingRate[]> {
+  const { data, error } = await supabase
+    .from('shipping_rates')
+    .select('*')
+    .order('country_code', { ascending: true })
+  if (error) {
+    console.error('Error fetching shipping rates:', error)
+    throw error
+  }
+  return data || []
+}
+
+export async function getShippingRateByCountry(countryCode: string): Promise<ShippingRate | null> {
+  const code = (countryCode || '').toUpperCase().trim()
+  if (!code) return null
+  const { data: exact } = await supabase
+    .from('shipping_rates')
+    .select('*')
+    .eq('country_code', code)
+    .maybeSingle()
+  if (exact) return exact
+  const { data: fallback } = await supabase
+    .from('shipping_rates')
+    .select('*')
+    .eq('country_code', '*')
+    .maybeSingle()
+  return fallback
+}
+
+export async function createShippingRate(rate: Omit<ShippingRate, 'id' | 'created_at' | 'updated_at'>): Promise<ShippingRate> {
+  const { data, error } = await supabase
+    .from('shipping_rates')
+    .insert({
+      ...rate,
+      updated_at: new Date().toISOString(),
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function updateShippingRate(id: string, updates: Partial<Pick<ShippingRate, 'name' | 'country_code' | 'price'>>): Promise<ShippingRate> {
+  const { data, error } = await supabase
+    .from('shipping_rates')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function deleteShippingRate(id: string): Promise<void> {
+  const { error } = await supabase.from('shipping_rates').delete().eq('id', id)
+  if (error) throw error
+}
+
+// ============================================
 // ORDERS
 // ============================================
 

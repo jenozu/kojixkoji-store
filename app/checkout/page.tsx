@@ -20,6 +20,16 @@ import {
 
 const format = (n: number) => `CA$${n.toFixed(2)}`
 
+function countryToCode(country: string): string {
+  const s = (country || "").trim().toLowerCase()
+  if (s.includes("canada") || s === "ca") return "CA"
+  if (s.includes("united states") || s === "usa" || s === "us") return "US"
+  if (s.includes("united kingdom") || s === "uk" || s === "gb") return "GB"
+  if (s.includes("australia") || s === "au") return "AU"
+  if (s.length >= 2) return s.slice(0, 2).toUpperCase()
+  return "*"
+}
+
 // Initialize Stripe
 // Added .trim() to prevent 401 errors from accidental whitespace
 const stripePromise = loadStripe(
@@ -29,6 +39,8 @@ const stripePromise = loadStripe(
 // Payment form component
 function PaymentForm({
   orderTotal,
+  subtotal,
+  shippingAmount,
   contact,
   shipping,
   items,
@@ -37,6 +49,8 @@ function PaymentForm({
   onError,
 }: {
   orderTotal: number
+  subtotal: number
+  shippingAmount: number
   contact: { email: string }
   shipping: any
   items: any[]
@@ -100,9 +114,9 @@ function PaymentForm({
             orderId,
             email: contact.email,
             items: JSON.stringify(itemsData),
-            subtotal: orderTotal.toString(),
+            subtotal: subtotal.toString(),
             taxes: "0",
-            shipping: "0",
+            shipping: shippingAmount.toString(),
             total: orderTotal.toString(),
             shippingName: `${shipping.firstName} ${shipping.lastName}`,
             shippingAddress: `${shipping.address1}${shipping.address2 ? ', ' + shipping.address2 : ''}`,
@@ -233,11 +247,20 @@ export default function CheckoutPage() {
   const [showPayment, setShowPayment] = useState(false)
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   const [isLoadingPayment, setIsLoadingPayment] = useState(false)
+  const [shippingAmount, setShippingAmount] = useState(9.99)
 
   const subtotal = total
-  const discount = 0 // apply real discounts here if needed
-  const estTaxes = useMemo(() => Math.max(0, subtotal - discount) * 0.0, [subtotal, discount]) // placeholder 0
-  const orderTotal = Math.max(0, subtotal - discount + estTaxes)
+  const discount = 0
+  const estTaxes = useMemo(() => Math.max(0, subtotal - discount) * 0.0, [subtotal, discount])
+  const orderTotal = Math.max(0, subtotal - discount + shippingAmount + estTaxes)
+
+  useEffect(() => {
+    const code = countryToCode(shipping.country)
+    fetch(`/api/shipping/rates?country=${encodeURIComponent(code)}`)
+      .then((res) => (res.ok ? res.json() : { price: 9.99 }))
+      .then((data) => setShippingAmount(Number(data.price) || 9.99))
+      .catch(() => setShippingAmount(9.99))
+  }, [shipping.country])
 
   const canPlace =
     items.length > 0 &&
@@ -484,6 +507,8 @@ export default function CheckoutPage() {
                   >
                     <PaymentForm
                       orderTotal={orderTotal}
+                      subtotal={subtotal}
+                      shippingAmount={shippingAmount}
                       contact={contact}
                       shipping={shipping}
                       items={items}
@@ -611,7 +636,7 @@ export default function CheckoutPage() {
                   )}
                   <div className="flex justify-between text-muted-foreground">
                     <span>Shipping</span>
-                    <span>Calculated at next step</span>
+                    <span>{format(shippingAmount)}</span>
                   </div>
                   <div className="flex justify-between text-muted-foreground">
                     <span>Estimated taxes</span>

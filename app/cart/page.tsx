@@ -3,7 +3,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useMemo } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { useCart } from "@/lib/cart-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -20,10 +20,17 @@ const fmt = new Intl.NumberFormat("en-CA", {
 export default function CartPage() {
   const router = useRouter()
   const { items, total, itemCount, updateQuantity, removeItem, clearCart } = useCart()
+  const [defaultShipping, setDefaultShipping] = useState<number>(9.99)
 
-  // (Optional) shipping/tax estimates — tweak as you like
-  const shippingEstimate = itemCount > 0 ? (total >= 100 ? 0 : 9.99) : 0
-  const taxesEstimate = 0 // add your rate if needed
+  useEffect(() => {
+    fetch("/api/shipping/rates")
+      .then((res) => res.ok ? res.json() : { defaultPrice: 9.99 })
+      .then((data) => setDefaultShipping(data.defaultPrice ?? 9.99))
+      .catch(() => setDefaultShipping(9.99))
+  }, [])
+
+  const shippingEstimate = itemCount > 0 ? (total >= 100 ? 0 : defaultShipping) : 0
+  const taxesEstimate = 0
   const grandTotal = useMemo(() => total + shippingEstimate + taxesEstimate, [total, shippingEstimate, taxesEstimate])
 
   return (

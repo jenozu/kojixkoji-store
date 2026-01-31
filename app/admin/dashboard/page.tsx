@@ -3,7 +3,7 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react'
 import { useRouter } from "next/navigation"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, Legend } from 'recharts'
-import { LayoutDashboard, Package, Settings, Plus, Trash2, Edit2, Upload, Image as ImageIcon, X, ArrowRight, AlertCircle, TrendingUp, DollarSign, ShoppingBag, LogOut, Video } from 'lucide-react'
+import { LayoutDashboard, Package, Settings, Plus, Trash2, Edit2, Upload, Image as ImageIcon, X, ArrowRight, AlertCircle, TrendingUp, DollarSign, ShoppingBag, LogOut, Video, Truck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 
@@ -105,6 +105,18 @@ export default function AdminDashboardPage() {
   const [dragActive, setDragActive] = useState(false)
   const mediaInputRef = useRef<HTMLInputElement>(null)
 
+  // Shipping settings
+  interface ShippingRateRow {
+    id: string
+    name: string
+    country_code: string
+    price: number
+  }
+  const [shippingRates, setShippingRates] = useState<ShippingRateRow[]>([])
+  const [shippingLoading, setShippingLoading] = useState(false)
+  const [shippingForm, setShippingForm] = useState({ name: '', country_code: '*', price: '9.99' })
+  const [editingShippingId, setEditingShippingId] = useState<string | null>(null)
+
   // Simple admin authentication check
   useEffect(() => {
     const auth = sessionStorage.getItem("admin-auth")
@@ -145,6 +157,25 @@ export default function AdminDashboardPage() {
       setLoading(false)
     }
   }
+
+  const refreshShippingRates = async () => {
+    try {
+      setShippingLoading(true)
+      const res = await fetch('/api/admin/shipping')
+      if (res.ok) {
+        const data = await res.json()
+        setShippingRates(data)
+      }
+    } catch (error) {
+      console.error('Error loading shipping rates:', error)
+    } finally {
+      setShippingLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'SETTINGS') refreshShippingRates()
+  }, [activeTab])
 
   // --- Calculations for Dashboard ---
   const lowStockItems = useMemo(() => products.filter(p => p.stock < 5), [products])
@@ -988,6 +1019,125 @@ export default function AdminDashboardPage() {
           {activeTab === 'SETTINGS' && (
             <div className="space-y-6">
               <h2 className="text-3xl font-bold">Settings</h2>
+
+              {/* Shipping rates */}
+              <div className="bg-card border rounded-lg p-6">
+                <h3 className="font-semibold mb-4 flex items-center gap-2">
+                  <Truck className="h-5 w-5" />
+                  Shipping rates by region
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Assign a shipping price per country. Use <code className="bg-secondary px-1 rounded">*</code> for default (all other regions).
+                </p>
+                {shippingLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading…</p>
+                ) : (
+                  <>
+                    <div className="space-y-2 mb-4">
+                      {shippingRates.map((r) => (
+                        <div key={r.id} className="flex items-center justify-between gap-4 py-2 border-b border-border last:border-0">
+                          <div>
+                            <span className="font-medium">{r.name}</span>
+                            <span className="text-muted-foreground ml-2">({r.country_code})</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">${Number(r.price).toFixed(2)}</span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setEditingShippingId(r.id)
+                                setShippingForm({ name: r.name, country_code: r.country_code, price: String(r.price) })
+                              }}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive"
+                              onClick={async () => {
+                                if (!confirm('Delete this rate?')) return
+                                try {
+                                  await fetch(`/api/admin/shipping/${r.id}`, { method: 'DELETE' })
+                                  refreshShippingRates()
+                                } catch (e) {
+                                  console.error(e)
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex flex-wrap gap-2 items-end">
+                      <input
+                        className="border rounded px-3 py-2 w-40"
+                        placeholder="Region name"
+                        value={shippingForm.name}
+                        onChange={(e) => setShippingForm((s) => ({ ...s, name: e.target.value }))}
+                      />
+                      <select
+                        className="border rounded px-3 py-2 w-28"
+                        value={shippingForm.country_code}
+                        onChange={(e) => setShippingForm((s) => ({ ...s, country_code: e.target.value }))}
+                      >
+                        <option value="*">Default (*)</option>
+                        <option value="CA">Canada (CA)</option>
+                        <option value="US">United States (US)</option>
+                        <option value="GB">United Kingdom (GB)</option>
+                        <option value="AU">Australia (AU)</option>
+                        <option value="OTHER">Other</option>
+                      </select>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="border rounded px-3 py-2 w-24"
+                        placeholder="Price"
+                        value={shippingForm.price}
+                        onChange={(e) => setShippingForm((s) => ({ ...s, price: e.target.value }))}
+                      />
+                      <Button
+                        onClick={async () => {
+                          const { name, country_code, price } = shippingForm
+                          if (!name || !price) return
+                          try {
+                            if (editingShippingId) {
+                              await fetch(`/api/admin/shipping/${editingShippingId}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ name, country_code: country_code || '*', price: parseFloat(price) }),
+                              })
+                              setEditingShippingId(null)
+                            } else {
+                              await fetch('/api/admin/shipping', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ name, country_code: country_code || '*', price: parseFloat(price) }),
+                              })
+                            }
+                            setShippingForm({ name: '', country_code: '*', price: '9.99' })
+                            refreshShippingRates()
+                          } catch (e) {
+                            console.error(e)
+                          }
+                        }}
+                      >
+                        {editingShippingId ? 'Update' : 'Add rate'}
+                      </Button>
+                      {editingShippingId && (
+                        <Button variant="outline" onClick={() => { setEditingShippingId(null); setShippingForm({ name: '', country_code: '*', price: '9.99' }) }}>
+                          Cancel
+                        </Button>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+
               <div className="bg-card border rounded-lg p-6">
                 <h3 className="font-semibold mb-4">Environment Configuration</h3>
                 <p className="text-sm text-muted-foreground mb-2">
