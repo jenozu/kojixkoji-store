@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe, verifyWebhookSignature } from '@/lib/stripe'
 import { createOrder } from '@/lib/supabase-helpers'
+import { sendOrderNotificationEmail, sendOrderConfirmationEmail } from '@/lib/email'
 import Stripe from 'stripe'
 
 /**
@@ -88,6 +89,34 @@ export async function POST(request: NextRequest) {
           })
 
           console.log(`Order ${metadata.orderId} created successfully`)
+
+          const orderData = {
+            orderId: metadata.orderId,
+            customerEmail: metadata.email,
+            items: items.map((i: { name: string; price: number; quantity: number; size?: string }) => ({
+              name: i.name,
+              price: i.price,
+              quantity: i.quantity,
+              size: i.size,
+            })),
+            subtotal: parseFloat(metadata.subtotal || '0'),
+            taxes: parseFloat(metadata.taxes || '0'),
+            shipping: parseFloat(metadata.shipping || '0'),
+            total: parseFloat(metadata.total || '0'),
+            shippingAddress,
+          }
+
+          // Send order confirmation to customer (primary)
+          const customerEmailResult = await sendOrderConfirmationEmail(orderData)
+          if (!customerEmailResult.success) {
+            console.warn('Customer confirmation email skipped or failed:', customerEmailResult.error)
+          }
+
+          // Send notification to store owner (optional)
+          const ownerEmailResult = await sendOrderNotificationEmail(orderData)
+          if (!ownerEmailResult.success) {
+            console.warn('Store owner notification email skipped or failed:', ownerEmailResult.error)
+          }
         } catch (error: any) {
           console.error('Error creating order from webhook:', error)
           // Don't return error - webhook will retry

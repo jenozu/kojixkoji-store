@@ -18,6 +18,15 @@ STRIPE_SECRET_KEY=sk_test_your_secret_key_here
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_publishable_key_here
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret_here
 
+# Order Emails (customers get confirmation; you can get notified too)
+RESEND_API_KEY=re_your_resend_api_key_here
+ORDER_NOTIFICATION_EMAIL=your-email@example.com
+# RESEND_FROM_EMAIL=KojixKoji <orders@yourdomain.com>  # Optional. Default: onboarding@resend.dev
+#
+# - RESEND_API_KEY: Required for emails. Customers get order confirmation automatically.
+# - ORDER_NOTIFICATION_EMAIL: Optional. Your email to receive alerts when orders come in.
+# - For customer emails to work in production: Verify your domain in Resend dashboard.
+
 ═══════════════════════════════════════════════════════════════════
 
 🔷 HOW TO GET SUPABASE CREDENTIALS
@@ -30,6 +39,21 @@ STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret_here
    - anon public key → NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 See SUPABASE_SETUP.md for detailed setup instructions.
+
+═══════════════════════════════════════════════════════════════════
+
+✉️ HOW TO GET RESEND CREDENTIALS (Order Email Notifications)
+
+1. Go to https://resend.com and create a free account
+2. In the dashboard, go to API Keys
+3. Create a new API key and copy it → RESEND_API_KEY
+4. Add your email to ORDER_NOTIFICATION_EMAIL (where you'll receive new order alerts)
+5. Customer confirmations: Sent automatically to the email customers enter at checkout.
+   With onboarding@resend.dev you can only send TO your Resend account email.
+   For real customers: Add and verify your domain in Resend.
+6. Store owner alerts: Set ORDER_NOTIFICATION_EMAIL to receive a copy of each new order.
+
+Free tier: 3,000 emails/month.
 
 ═══════════════════════════════════════════════════════════════════
 
@@ -54,6 +78,8 @@ Add these environment variables in Vercel dashboard:
    - NEXT_PUBLIC_SUPABASE_URL
    - NEXT_PUBLIC_SUPABASE_ANON_KEY
    - ADMIN_PASSWORD
+   - Stripe keys (STRIPE_SECRET_KEY, etc.)
+   - For order emails: RESEND_API_KEY, ORDER_NOTIFICATION_EMAIL
 
 4. Set for: Production, Preview, and Development
 5. Redeploy
