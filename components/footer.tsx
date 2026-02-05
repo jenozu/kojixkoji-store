@@ -8,8 +8,16 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="space-y-4">
-            <div className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              KojixKoji
+            <div
+              className="text-xl font-bold flex items-baseline gap-1"
+              style={{ fontFamily: "var(--font-gulya)" }}
+            >
+              <span className="text-pink-500">koji</span>
+              <span className="bg-gradient-to-r from-pink-500 to-sky-400 bg-clip-text text-transparent">
+                {" "}
+                x{" "}
+              </span>
+              <span className="text-sky-400">koji</span>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
               Bringing kawaii dreams to life with adorable art prints and merchandise featuring your favorite anime

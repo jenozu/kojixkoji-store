@@ -23,8 +23,16 @@ export function Header() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
-            <div className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              KojixKoji
+            <div
+              className="text-2xl font-bold flex items-baseline gap-1"
+              style={{ fontFamily: "var(--font-gulya)" }}
+            >
+              <span className="text-pink-500">koji</span>
+              <span className="bg-gradient-to-r from-pink-500 to-sky-400 bg-clip-text text-transparent">
+                {" "}
+                x{" "}
+              </span>
+              <span className="text-sky-400">koji</span>
             </div>
           </Link>
 
